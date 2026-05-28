@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Solar Cleaning Manager</title>
+<link rel="stylesheet" href="style.css">
+
+	<script>
+	function startCleaning(){
+	    alert("Cleaning system started");
+	}
+	
+	function stopCleaning(){
+	    alert("Cleaning system stopped");
+	}
+	
+	// Fake sensor updates
+	const dustLevels = ["Low", "Medium", "High"];
+	
+	setInterval(() => {
+	    const random =
+	        dustLevels[Math.floor(Math.random() * dustLevels.length)];
+	
+	    document.getElementById("dustLevel").innerText = random;
+	}, 4000);
+	</script>
+	
+</head>
+<body>
+<div class="app">
+
+<header>
+    <h1>Solar Cleaning Manager</h1>
+    <p>Mobile Control System</p>
+</header>
+
+<div class="section">
+
+    <!-- Dashboard -->
+    <div class="card">
+        <h2>Dashboard</h2>
+
+        <div class="stats">
+            <div class="stat-box">
+                <h3>Panels Cleaned</h3>
+                <p>128</p>
+            </div>
+
+            <div class="stat-box">
+                <h3>Water Usage</h3>
+                <p>340L</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Sensor Monitoring -->
+    <div class="card">
+        <h2>Sensor Monitoring</h2>
+
+        <div class="sensor">
+            <span>Dust Level</span>
+            <strong id="dustLevel">Low</strong>
+        </div>
+
+        <div class="sensor">
+            <span>Water Tank</span>
+            <strong>78%</strong>
+        </div>
+
+        <div class="sensor">
+            <span>Pump Status</span>
+            <strong style="color:green;">Active</strong>
+        </div>
+    </div>
+
+    <!-- Manual Cleaning -->
+    <div class="card">
+        <h2>Manual Cleaning</h2>
+
+        <button class="btn-primary" onclick="startCleaning()">
+            Start Cleaning
+        </button>
+
+        <button class="btn-secondary">
+            Rinsing Mode
+        </button>
+
+        <button class="btn-secondary">
+            Brushing Mode
+        </button>
+
+        <button class="btn-danger" onclick="stopCleaning()">
+            Stop System
+        </button>
+    </div>
+
+    <!-- Automatic Activation -->
+    <div class="card">
+        <div class="toggle">
+            <div>
+                <h2>Automatic Activation</h2>
+                <p style="font-size:14px;color:#666;">
+                    Activate cleaning based on sensors
+                </p>
+            </div>
+
+            <label class="switch">
+                <input type="checkbox" id="autoMode" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+    </div>
+
+    <!-- Cleaning Log -->
+    <div class="card">
+        <h2>Cleaning Log</h2>
+
+        <div class="log-item">
+            <div class="log-date">May 28, 2026 - 09:40</div>
+            <strong>Automatic Cleaning</strong>
+            <p>Dust accumulation detected</p>
+            <div class="badge">Rinsing + Brushing</div>
+        </div>
+
+        <div class="log-item">
+            <div class="log-date">May 27, 2026 - 17:20</div>
+            <strong>Manual Cleaning</strong>
+            <p>Routine maintenance</p>
+            <div class="badge">Rinsing Only</div>
+        </div>
+
+    </div>
+
+</div>
+
+<!-- Bottom Navigation -->
+<div class="bottom-nav">
+    <button class="active-nav">Dashboard</button>
+    <button>Controls</button>
+    <button>Logs</button>
+    <button>Sensors</button>
+</div>
+
+</div>
+
+</body>
+</html>
