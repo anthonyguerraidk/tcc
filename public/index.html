@@ -5,57 +5,111 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Solar Cleaning Manager</title>
 <link rel="stylesheet" href="style.css">
-
 	<script>
-	function startCleaning(){
-	    alert("Cleaning system started");
-	}
-	
-	function stopCleaning(){
-	    alert("Cleaning system stopped");
-	}
-	
-	// Fake sensor updates
-	const dustLevels = ["Low", "Medium", "High"];
-	
-	setInterval(() => {
-	    const random =
-	        dustLevels[Math.floor(Math.random() * dustLevels.length)];
-	
-	    document.getElementById("dustLevel").innerText = random;
-	}, 4000);
+       const API = "http://localhost:3000"; //testing
+        async function getInfo() {
+            try {
+                const response = await fetch(`${API}/data`);
+                const data = await response.json();
+                if(data.connected==false){
+                    console.log("esp32 is not connected")
+                    document.getElementById("stats").removeAttribute("hidden");
+                    
+                }else{
+                document.getElementById("stats").setAttribute("hidden", "");
+                document.getElementById("panelsCleaned").innerText = data.panelsCleaned;
+                document.getElementById("waterUsage").innerText = `${data.waterUsage}L`;
+        
+                document.getElementById("dustLevel").innerText = data.dustLevel;
+                document.getElementById("waterTank").innerText = `${data.waterTank}%`;
+        
+                const pump = document.getElementById("pumpStatus");
+                pump.innerText = data.pumpStatus ? "Active" : "Stopped";
+                pump.style.color = data.pumpStatus ? "green" : "red";
+        
+                document.getElementById("autoMode").checked = data.autoMode;
+        
+                }
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function startCleaning() {
+            try {
+                await fetch(`${API}/clean/start`, {
+                    method: "POST"
+                });
+        
+                getInfo();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function stopCleaning() {
+            try {
+                await fetch(`${API}/clean/stop`, {
+                    method: "POST"
+                });
+        
+                getInfo();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        document.addEventListener("DOMContentLoaded", () => {
+        
+            document.getElementById("autoMode").addEventListener("change", async function () {
+        
+                await fetch(`${API}/auto`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        enabled: this.checked
+                    })
+                });
+        
+            });
+        
+            getInfo();
+        
+            // Refresh every 5 seconds
+            setInterval(getInfo, 5000);
+        
+        });
 	</script>
-	
 </head>
 <body>
-<div class="app">
-
-<header>
-    <h1>Solar Cleaning Manager</h1>
-    <p>Mobile Control System</p>
-</header>
-
-<div class="section">
-
-    <!-- Dashboard -->
-    <div class="card">
+    <div class="app">
+        <header>
+            <h1>Solar Cleaning Manager</h1>
+            <p>Mobile Control System</p>
+        </header>
+        <div class="section">
+        <div hidden id="stats" style="background-color: red;" class="card">
+            <center><h1 id="status">DISCONNECTED</h1></center>
+        </div>
+        <div class="card">
         <h2>Dashboard</h2>
 
         <div class="stats">
             <div class="stat-box">
                 <h3>Panels Cleaned</h3>
-                <p>128</p>
+                <p id="panelsCleaned">0</p>
             </div>
 
             <div class="stat-box">
                 <h3>Water Usage</h3>
-                <p>340L</p>
+                <p id="waterUsage">0</p>
             </div>
         </div>
-    </div>
-
-    <!-- Sensor Monitoring -->
-    <div class="card">
+        </div>
+    
+        <div class="card">
         <h2>Sensor Monitoring</h2>
 
         <div class="sensor">
@@ -65,17 +119,16 @@
 
         <div class="sensor">
             <span>Water Tank</span>
-            <strong>78%</strong>
+            <strong id="waterTank">0%</strong>
         </div>
 
         <div class="sensor">
             <span>Pump Status</span>
-            <strong style="color:green;">Active</strong>
+            <strong id="pumpStatus" style="color:green;">Unknown</strong>
         </div>
-    </div>
-
-    <!-- Manual Cleaning -->
-    <div class="card">
+        </div>
+    
+        <div class="card">
         <h2>Manual Cleaning</h2>
 
         <button class="btn-primary" onclick="startCleaning()">
@@ -93,10 +146,9 @@
         <button class="btn-danger" onclick="stopCleaning()">
             Stop System
         </button>
-    </div>
-
-    <!-- Automatic Activation -->
-    <div class="card">
+        </div>
+    
+        <div class="card">
         <div class="toggle">
             <div>
                 <h2>Automatic Activation</h2>
@@ -110,10 +162,9 @@
                 <span class="slider"></span>
             </label>
         </div>
-    </div>
-
-    <!-- Cleaning Log -->
-    <div class="card">
+        </div>
+    
+        <div class="card">
         <h2>Cleaning Log</h2>
 
         <div class="log-item">
@@ -129,20 +180,14 @@
             <p>Routine maintenance</p>
             <div class="badge">Rinsing Only</div>
         </div>
-
+        </div>
+        </div>
+        <div class="bottom-nav">
+        <button class="active-nav">Dashboard</button>
+        <button>Controls</button>
+        <button>Logs</button>
+        <button>Sensors</button>
+        </div>
     </div>
-
-</div>
-
-<!-- Bottom Navigation -->
-<div class="bottom-nav">
-    <button class="active-nav">Dashboard</button>
-    <button>Controls</button>
-    <button>Logs</button>
-    <button>Sensors</button>
-</div>
-
-</div>
-
 </body>
 </html>
