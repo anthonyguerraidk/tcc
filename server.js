@@ -13,9 +13,10 @@ const esp = {
   waterTank:0,
   pumpRunning:false,
   command:"idle",
-  lastCommandAck:"...",
-  CommandAnswer:"..."
+  lastCommandAck:"",
+  status:"idle"
 }
+
 app.use(express.json()); //so express can properly parse json
 app.use(express.static('public')); //allowing server access to everything inside public/
 
@@ -26,6 +27,7 @@ app.get('/', (req, res) => {
 
 //to start or stop cleaning
 app.post('/clean/start',(req,res)=>{
+  esp.panelsCleaned+=1;
   esp.command="clean";
   res.json({ command:`sending command: ${esp.command}`});
 })
@@ -43,7 +45,7 @@ app.post('/heartbeat',(req,res)=>{
         dustLevel,
         waterTank,
         command,
-        commandAnswer,
+        status,
         pumpRunning
   } = req.body;
     
@@ -52,18 +54,18 @@ app.post('/heartbeat',(req,res)=>{
     esp.dustLevel=dustLevel;
     esp.waterTank=waterTank;
     esp.pumpRunning=pumpRunning;
-    esp.commandAnswer=commandAnswer;
+    esp.status=status;
     
     //send back command
-    if(esp.commandAnswer=="doneCleaning"){
-      //console.log("now cleaning...");
-      esp.lastCommandAck="now cleaning...";
-    }else if(){
-
+    if(status=="nowCleaning"){
+      //...
+    }else if(status=="doneCleaning"){
+      res.json({ command: "idle"});
     }else{
       res.json({ command: esp.command});
       esp.lastCommandAck=`${esp.command} sent succesfully`
     }
+    console.log(esp);
 })
 
 //get data

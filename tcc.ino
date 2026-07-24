@@ -12,7 +12,7 @@ const float DIVIDER_RATIO = 5.54;
 
 float power = 0;
 String command = "idle";
-String commandAnswer="...";
+String state="...";
 void setup() {
   Serial.begin(115200);
   
@@ -55,8 +55,8 @@ void heartbeat(){
         "\"dustLevel\":\"placeholder\","
         "\"waterTank\":\"placeholder\","
         "\"pumpRunning\":\"placeholder\","
-        "\"commandAnswer\":\"" + String(commandAnswer) + "\","
-        "\"command\":\"" + String(command) + "\","
+        "\"status\":\"" + String(state) + "\","
+        //"\"command\":\"" + String(command) + "\","
         "\"power\":" + String(power,2) +
         "}";
     int code = http.POST(json);
@@ -70,8 +70,11 @@ void heartbeat(){
           return;
         }
         String sentCommand = doc["command"];
-        if(command=="idle"){
+        if(state!="doneCleaning"){
           command=sentCommand;
+        }else{
+          state="idle";
+          command="idle";
         }
     }
     http.end();
@@ -81,11 +84,11 @@ void heartbeat(){
 void clean(){
   command="cleaning";
   Serial.println("i'll pretend im cleaning");
-  commandAnswer="now cleaning...";
+  state="nowCleaning";
   heartbeat();
   delay(5000);
   Serial.println("done!");
-  commandAnswer="doneCleaning";
+  state="doneCleaning";
   command="idle";
   heartbeat();
 }
@@ -100,6 +103,6 @@ void loop() {
   }
   readSolarPower();
   heartbeat();
-  commandAnswer="...";
+  state="idle";
   delay(1000);
 }
