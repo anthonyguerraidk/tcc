@@ -2,6 +2,7 @@ const express = require('express'); //librariessss didnt want to but its practic
 const app = express(); //express is kinda useful... at least aint react
 const path = require('path'); //importing fs path reader
 const PORT = 3000; //port the server will use, may change?
+//this esp here holds the last data retrieved from the esp32 
 const esp = {
   connected:false,
   lastSeen:0,
@@ -11,9 +12,11 @@ const esp = {
   dustLevel:0,
   waterTank:0,
   pumpRunning:false,
-  command:"idle"
+  command:"idle",
+  lastCommandAck:"...",
+  CommandAnswer:"..."
 }
-app.use(express.json());
+app.use(express.json()); //so express can properly parse json
 app.use(express.static('public')); //allowing server access to everything inside public/
 
 //default request ("/")
@@ -21,53 +24,65 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(__dirname, 'index.html'));
 });
 
+//to start or stop cleaning
+app.post('/clean/start',(req,res)=>{
+  esp.command="clean";
+  res.json({ command:`sending command: ${esp.command}`});
+})
+
+//app.post('/clean/stop',(req,res)=>{
+//  esp.command="stop";
+//})
+
 //heartbeat, esp32
 app.post('/heartbeat',(req,res)=>{
     esp.connected = true;
     esp.lastSeen = Date.now();
-
   const {
         power, 
         dustLevel,
         waterTank,
+        command,
+        commandAnswer,
         pumpRunning
-    } = req.body;
+  } = req.body;
     
     //set values
     esp.power=power;
     esp.dustLevel=dustLevel;
     esp.waterTank=waterTank;
     esp.pumpRunning=pumpRunning;
+    esp.commandAnswer=commandAnswer;
     
     //send back command
-      res.json({ command: "idle" });
+    if(esp.commandAnswer=="doneCleaning"){
+      //console.log("now cleaning...");
+      esp.lastCommandAck="now cleaning...";
+    }else if(){
+
+    }else{
+      res.json({ command: esp.command});
+      esp.lastCommandAck=`${esp.command} sent succesfully`
+    }
 })
 
-//get data, to be worked
+//get data
 app.get('/data', (req, res) => {
     if(esp.connected==false){
       console.log("eps32 is not connected");
       res.json({connected:false});
     }else{
-  res.json({
-    esp,
-    status: 'ok'
-  });
+  res.json({esp});
 }
 });
 
-//post commands, to be worked
-//esp32 will send posts as requests for instructions each second and to send data
-//data which will be saved and sent on /data, make disconnection detection too
-app.post('/echo', (req, res) => {
-  res.json({
-    received: req.body
-  });
-});
-
 setInterval(() => {
-    if (Date.now() - esp.lastSeen > 5000) {
-        esp.connected = false;
+    if(esp.command=="cleaning"){
+      return;
+    }
+    if (Date.now() - esp.lastSeen > 6000) {
+      esp.connected = false;
+      esp.command="idle";
     }
 }, 1000);
 

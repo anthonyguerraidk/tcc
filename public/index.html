@@ -11,36 +11,45 @@
             try {
                 const response = await fetch(`${API}/data`);
                 const data = await response.json();
-                if(data.connected==false){
+                
+                try{
+                    if(data.esp.connected==false){
                     console.log("esp32 is not connected")
                     document.getElementById("stats").removeAttribute("hidden");
-                    
-                }else{
+                    return;
+                }}catch(err){
+                    console.log("esp32 is not connected")
+                    document.getElementById("stats").removeAttribute("hidden");
+                    return;
+                }
+                
+                let esp=data.esp;
                 document.getElementById("stats").setAttribute("hidden", "");
-                document.getElementById("panelsCleaned").innerText = data.panelsCleaned;
-                document.getElementById("waterUsage").innerText = `${data.waterUsage}L`;
-        
-                document.getElementById("dustLevel").innerText = data.dustLevel;
-                document.getElementById("waterTank").innerText = `${data.waterTank}%`;
+                document.getElementById("panelsCleaned").innerText = esp.panelsCleaned;
+                document.getElementById("waterUsage").innerText = `${esp.waterUsage}L`;
+                
+                document.getElementById("voltageInput").innerText = `${esp.power}V`;
+                document.getElementById("dustLevel").innerText = esp.dustLevel;
+                document.getElementById("waterTank").innerText = `${esp.waterTank}%`;
         
                 const pump = document.getElementById("pumpStatus");
-                pump.innerText = data.pumpStatus ? "Active" : "Stopped";
-                pump.style.color = data.pumpStatus ? "green" : "red";
-        
-                document.getElementById("autoMode").checked = data.autoMode;
-        
-                }
+                pump.innerText = esp.pumpStatus ? "Active" : "Stopped";
+                pump.style.color = esp.pumpStatus ? "green" : "red";
+                document.getElementById("autoMode").checked = esp.autoMode;
+                console.log(`currently: ${esp.command}`)
+                
             } catch (err) {
                 console.error(err);
             }
         }
-        
+
         async function startCleaning() {
             try {
-                await fetch(`${API}/clean/start`, {
+                const response = await fetch(`${API}/clean/start`, {
                     method: "POST"
                 });
-        
+                const data = await response.json();
+                console.log(data.command);
                 getInfo();
             } catch (err) {
                 console.error(err);
@@ -111,6 +120,11 @@
     
         <div class="card">
         <h2>Sensor Monitoring</h2>
+
+         <div class="sensor">
+            <span>Current voltage</span>
+            <strong id="voltageInput">0</strong>
+        </div>
 
         <div class="sensor">
             <span>Dust Level</span>
