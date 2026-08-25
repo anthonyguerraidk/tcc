@@ -8,8 +8,10 @@ sudo iptables -t nat -F
 
 echo "Hotspot stopped."
 
-sudo nmcli dev set wlx909164003fbf managed yes
-sudo nmcli device connect wlx909164003fbf
+WIFI_IF="wlp2s0"
+
+sudo nmcli dev set $WIFI_IF managed yes
+sudo nmcli device connect $WIFI_IF
 
 sudo systemctl restart NetworkManager
 sudo systemctl restart wpa_supplicant

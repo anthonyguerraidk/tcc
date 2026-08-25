@@ -8,8 +8,9 @@ sudo nmcli dev set $WIFI_IF managed no
 
 set -e
 
-WIFI_IF="wlx909164003fbf"
+#WIFI_IF="wlx909164003fbf"
 #INET_IF="wlp0s20f3"
+WIFI_IF="wlp2s0"
 INET_IF="enp8s0"
 
 SSID="owo"

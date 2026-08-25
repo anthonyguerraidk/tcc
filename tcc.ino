@@ -12,7 +12,7 @@ const float DIVIDER_RATIO = 5.54;
 
 float power = 0;
 String command = "idle";
-String state="...";
+String state="idle";
 void setup() {
   Serial.begin(115200);
   
@@ -23,6 +23,9 @@ void setup() {
   WiFi.begin(ssid, password);
   while (WiFi.status() != WL_CONNECTED) {
         delay(500);
+        Serial.print("connecting to wifi: ");
+        Serial.print(ssid);
+        Serial.println("\n");
         Serial.print(".");
   }
   Serial.println("\nConnected!");
@@ -30,7 +33,6 @@ void setup() {
 }
 
 void readSolarPower(){
-
   uint32_t adcMilliVolts = analogReadMilliVolts(VOLTAGE_PIN);
   float pinVoltage = adcMilliVolts / 1000.0f;
   float inputVoltage = pinVoltage * DIVIDER_RATIO;
@@ -50,6 +52,7 @@ void heartbeat(){
     HTTPClient http;
     http.begin("http://192.168.50.1:3000/heartbeat");
     http.addHeader("Content-Type", "application/json");
+    
     String json =
         "{"
         "\"dustLevel\":\"placeholder\","
@@ -60,6 +63,7 @@ void heartbeat(){
         "\"power\":" + String(power,2) +
         "}";
     int code = http.POST(json);
+    
     if (code > 0) {
         String response = http.getString();
         Serial.println(response);
@@ -71,7 +75,7 @@ void heartbeat(){
         }
         String sentCommand = doc["command"];
         if(state!="doneCleaning"){
-          command=sentCommand;
+          command="idle";//annoying clean state bug is probably here, review the code and fix
         }else{
           state="idle";
           command="idle";
@@ -86,7 +90,7 @@ void clean(){
   Serial.println("i'll pretend im cleaning");
   state="nowCleaning";
   heartbeat();
-  delay(5000);
+  delay(5000);//code to clean here
   Serial.println("done!");
   state="doneCleaning";
   command="idle";
@@ -99,7 +103,7 @@ void loop() {
   }else if(command=="clean"){
     clean(); 
   }else{
-      Serial.println("something went wrong?");
+      Serial.println("something went wrong? idk, no command here");
   }
   readSolarPower();
   heartbeat();
