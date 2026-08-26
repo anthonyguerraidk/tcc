@@ -3,6 +3,8 @@
 #sudo systemctl stop NetworkManager
 #sudo systemctl stop wpa_supplicant
 
+sudo rfkill unblock all
+
 sudo nmcli dev disconnect $WIFI_IF || true
 sudo nmcli dev set $WIFI_IF managed no
 

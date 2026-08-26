@@ -14,7 +14,7 @@ const esp = {
   waterTank:0,      //water remaining for usage, probably to be removed
   pumpRunning:false,//pump boolean
   command:"idle",   //last command sent
-  lastCommandAck:"",//command feedback
+  ack:"...",        //command feedback
   status:"idle"     //current command running
 }
 
@@ -55,6 +55,7 @@ app.post('/heartbeat',(req,res)=>{
       waterTank,
       command,
       status,
+      ack,
       pumpRunning
     } = req.body;
       
@@ -64,17 +65,18 @@ app.post('/heartbeat',(req,res)=>{
     esp.waterTank=waterTank;
     esp.pumpRunning=pumpRunning;
     esp.status=status;
-    
+    esp.ack=ack;
     //send command back to esp
     if(status=="nowCleaning"){
       esp.lastSeen = Date.now();
       console.log("cleaning");
     }else if(status=="doneCleaning"){
       esp.panelsCleaned+=1;
-      res.json({ command: "idle"});
+      esp.command="idle";
     }else{
       res.json({ command: esp.command});
-      esp.lastCommandAck=`${esp.command} sent succesfully`
+      
+      //esp.lastCommandAck=`${esp.command} sent succesfully`
     }
 
     //console.log(esp);

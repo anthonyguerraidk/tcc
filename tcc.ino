@@ -11,8 +11,10 @@ const int VOLTAGE_PIN = 33;
 const float DIVIDER_RATIO = 5.54;
 
 float power = 0;
-String command = "idle";
+String command = "idle"; //ill leave this here so if someone calls without no connection shi doesnt break
 String state="idle";
+String ack="...";
+
 void setup() {
   Serial.begin(115200);
   
@@ -59,11 +61,11 @@ void heartbeat(){
         "\"waterTank\":\"placeholder\","
         "\"pumpRunning\":\"placeholder\","
         "\"status\":\"" + String(state) + "\","
+        "\"ack\":\"" + String(ack) + "\","
         //"\"command\":\"" + String(command) + "\","
         "\"power\":" + String(power,2) +
         "}";
     int code = http.POST(json);
-    
     if (code > 0) {
         String response = http.getString();
         Serial.println(response);
@@ -73,28 +75,39 @@ void heartbeat(){
           Serial.println(error.c_str());
           return;
         }
-        String sentCommand = doc["command"];
-        if(state!="doneCleaning"){
-          command="idle";//annoying clean state bug is probably here, review the code and fix
-        }else{
+        //String sentCommand = doc["command"];
+        String sentCommand = doc["command"]; command = sentCommand;
+        
+        if(state=="idle"){
+          if(command=="clean"){ //just to check if the command is valid, not really necessary ig
+            ack=command+" acknowledged";
+            clean();
+          }else if(command=="idle"){}else{
+            Serial.println("invalid command, "+command);
+            ack="invalid command sent";
+          }
+        }else if(state=="cleaning"){
+          ack="cleaning right now";
+        }else if(state=="doneCleaning"){
           state="idle";
-          command="idle";
-        }
+          ack="done cleaning";
+        }else{Serial.println("invalid state??");}
     }
     http.end();
-}  
+  }  
 }
 
 void clean(){
-  command="cleaning";
   Serial.println("i'll pretend im cleaning");
   state="nowCleaning";
   heartbeat();
   delay(5000);//code to clean here
   Serial.println("done!");
   state="doneCleaning";
-  command="idle";
+  //command="idle";
   heartbeat();
+  command="idle";
+  ack="idle rn";
 }
 
 void loop() {
