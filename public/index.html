@@ -12,13 +12,6 @@
             try{
                 const response = await fetch(`${API}/data`);
                 const data = await response.json();
-                    if(data.connected==false){
-                    console.log("esp32 is not connected")
-                    document.getElementById("stats").removeAttribute("hidden");
-                    document.querySelectorAll("#actions button").forEach(btn => btn.setAttribute("disabled",""));
-                    return;
-                }
-                
                 let esp=data.esp;
                 document.getElementById("stats").setAttribute("hidden", "");
                 document.querySelectorAll("#actions button").forEach(btn => btn.removeAttribute("disabled"));
@@ -37,6 +30,9 @@
                 console.log(`currently: ${esp.command}`)
                 
             }catch (err) {
+                    console.log("backEnd is not up")
+                    document.getElementById("stats").removeAttribute("hidden");
+                    document.querySelectorAll("#actions button").forEach(btn => btn.setAttribute("disabled",""));
                 console.error(err);
             }
         }
@@ -147,17 +143,19 @@
             Start Cleaning
         </button>
 
-        <button class="btn-secondary">
+        <!--<button class="btn-secondary">
             Rinsing Mode
-        </button>
+        </button>-->
 
-        <button class="btn-secondary">
+        <!--<button class="btn-secondary">
             Brushing Mode
-        </button>
+        </button>-->
 
+        <!--work on this-->
         <button class="btn-danger" onclick="stopCleaning()">
             Stop System
         </button>
+
         </div>
     
         <div class="card">

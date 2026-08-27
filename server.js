@@ -18,6 +18,9 @@ const esp = {
   status:"idle"     //current command running
 }
 
+//let log="";
+let powerAverage=[];
+
 app.use(cors({
   origin: "http://localhost:3000",
 }));//setup cors, what a pain in my ass eh
@@ -36,7 +39,14 @@ app.post('/clean/start',(req,res)=>{
     //wait for heartbeat so esp sees the command
 })
 
-//maybe ill work on this?
+//this gotta update very x y, i was thinking every minute, but too much innit?, every hour?
+//the average count must run every minute, but its too much... useless data
+app.post('/update',(req,res)=>{
+  //average();
+  //database connection here, upload data
+})
+
+//maybe ill work on this later?
 //app.post('/clean/stop',(req,res)=>{
 //  esp.command="stop";
 //})
@@ -58,7 +68,7 @@ app.post('/heartbeat',(req,res)=>{
       ack,
       pumpRunning
     } = req.body;
-      
+
     //set values
     esp.power=power;
     esp.dustLevel=dustLevel;
@@ -76,10 +86,12 @@ app.post('/heartbeat',(req,res)=>{
     }else{
       res.json({ command: esp.command});
       
-      //esp.lastCommandAck=`${esp.command} sent succesfully`
     }
+      
+//i forgor how to use lists lol, heres the functions:
+//push(), pop(), shift(), unshift(), map(), filter(), forEach(), reduce(), sort(), and slice().
 
-    //console.log(esp);
+    powerAverage.push(power);
 })
 
 //get data
@@ -92,13 +104,25 @@ app.get('/data', (req, res) => {
 }
 });
 
+function average(){
+  let x;
+  for(i=0;i=powerAverage.length;i++){
+    x+i;
+  }
+  x=(x/powerAverage.length);
+  console.log(x);
+  return x;
+}
+
 function report(){
   return esp;
 }
 
+//update database function
+
 //loop to check if the esp is still connected, timeout postponed if cleaning
 setInterval(() => {
-    console.log(report())//console report
+    //console.log(report())//console report
     if(esp.status=="nowCleaning"){
       connected = true;
       esp.lastSeen = Date.now();
