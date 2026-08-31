@@ -3,6 +3,8 @@ const app = express(); //express is kinda useful... at least aint react
 const path = require('path'); //importing fs path reader
 const PORT = 3000; //port the server will use, may change?
 const cors = require('cors');
+const mysql = require('mysql2');
+const fs = require('fs');
 //this esp here holds the last data retrieved from the esp32 
 let connected = false;
 const esp = {
@@ -16,6 +18,41 @@ const esp = {
   command:"idle",   //last command sent
   ack:"...",        //command feedback
   status:"idle"     //current command running
+}
+
+let dbPass=null;
+
+process.argv.forEach(function (val, index, array) {
+  if (index==2){
+    dbPass = val;console.log("entered password: "+val)
+  }
+
+});
+
+if(dbPass==null||dbPass==0||dbPass==""){
+  console.log("no password provided, the program will start without database")
+}else{
+  
+const dbj= JSON.parse(fs.readFileSync('../db.json','utf8')); //get the database data from a file outside the project
+  const db = mysql.createConnection({
+    host: dbj.host,
+    user: dbj.user,
+    password: dbj.pass,
+    database: dbj.db,
+    port: 3306 //? idk wich port to use
+});
+db.connect((err) => {
+
+    if (err) {
+        console.error("Database connection failed:");
+        console.error(err);
+        return;
+    }
+
+    console.log("Connected to database!");
+});
+
+
 }
 
 //let log="";
