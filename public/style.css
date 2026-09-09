@@ -88,6 +88,10 @@ header p{
     border-bottom:none;
 }
 
+.dis{
+
+}
+
 button{
     width:100%;
     padding:14px;
@@ -97,6 +101,11 @@ button{
     font-size:15px;
     font-weight:bold;
     cursor:pointer;
+}
+
+.dis{
+    background:#696969;
+    color:white;
 }
 
 .btn-primary{

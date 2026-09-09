@@ -20,8 +20,11 @@ const esp = {
   status:"idle"     //current command running
 }
 
-let dbPass=null;
+//workin with the database, 
+//the input of a password defines the use of a db or not
+let dbPass=null; //database password
 
+//process the arguments, supposedly the password goes there
 process.argv.forEach(function (val, index, array) {
   if (index==2){
     dbPass = val;console.log("entered password: "+val)
@@ -29,26 +32,27 @@ process.argv.forEach(function (val, index, array) {
 
 });
 
+//if no password there, complain and start without database
+//might change the code later, cuz im changing the password later anyways
 if(dbPass==null||dbPass==0||dbPass==""){
   console.log("no password provided, the program will start without database")
 }else{
-  
+
+//for security reasons, the database info will be taken outta there
 const dbj= JSON.parse(fs.readFileSync('../db.json','utf8')); //get the database data from a file outside the project
   const db = mysql.createConnection({
     host: dbj.host,
     user: dbj.user,
     password: dbj.pass,
     database: dbj.db,
-    port: 3306 //? idk wich port to use
+    port: 3306 //? idk wich port to use, this the default innit?
 });
 db.connect((err) => {
-
     if (err) {
         console.error("Database connection failed:");
         console.error(err);
         return;
     }
-
     console.log("Connected to database!");
 });
 
@@ -118,17 +122,22 @@ app.post('/heartbeat',(req,res)=>{
       esp.lastSeen = Date.now();
       console.log("cleaning");
     }else if(status=="doneCleaning"){
+      console.log("done cleaning");
       esp.panelsCleaned+=1;
       esp.command="idle";
     }else{
       res.json({ command: esp.command});
-      
     }
       
-//i forgor how to use lists lol, heres the functions:
+//i forgor how to use lists lollllll, heres the functions:
 //push(), pop(), shift(), unshift(), map(), filter(), forEach(), reduce(), sort(), and slice().
-
     powerAverage.push(power);
+    
+    //BEHOLD!! DEBUGG!!
+
+    //console.log(esp);
+
+    //
 })
 
 //get data
