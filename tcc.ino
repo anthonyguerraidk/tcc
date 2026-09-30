@@ -7,7 +7,9 @@ JsonDocument doc;
 const char* ssid = "owo";
 const char* password = "password";
 
+
 const int VOLTAGE_PIN = 33;
+const int VALVE_PIN= 35;
 const float DIVIDER_RATIO = 5.54;
 
 float power = 0;
@@ -17,7 +19,8 @@ String ack="...";
 
 void setup() {
   Serial.begin(115200);
-  
+  pinMode(VALVE_PIN,OUTPUT);//valve
+  digitalWrite(VALVE_PIN,LOW);
   analogReadResolution(12);
   analogSetAttenuation(ADC_11db);
   Serial.println("Voltage monitor started");
@@ -68,7 +71,7 @@ void heartbeat(){
     int code = http.POST(json);
     if (code > 0) {
         String response = http.getString();
-        Serial.println(response);
+        //Serial.println(response);
         DeserializationError error = deserializeJson(doc, response);
         if (error) {
           Serial.print("JSON Error");
@@ -101,7 +104,13 @@ void clean(){
   Serial.println("i'll pretend im cleaning");
   state="nowCleaning";
   heartbeat();
-  delay(5000);//code to clean here
+  
+  digitalWrite(VALVE_PIN, HIGH);
+  Serial.println("high");
+  delay(15000);
+  digitalWrite(VALVE_PIN, LOW);
+  Serial.println("low");
+  
   Serial.println("done!");
   state="doneCleaning";
   //command="idle";
@@ -111,8 +120,9 @@ void clean(){
 }
 
 void loop() {
+  //Serial.println(power);
   if(command=="idle"){
-    Serial.println("idle");
+    //Serial.println("idle");
   }else if(command=="clean"){
     clean(); 
   }else{
