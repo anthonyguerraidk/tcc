@@ -20,23 +20,24 @@ const esp = {
   status:"idle"     //current command running
 }
 
-//workin with the database, 
-//the input of a password defines the use of a db or not
-let dbPass=null; //database password
 
 //process the arguments, supposedly the password goes there
 process.argv.forEach(function (val, index, array) {
-  if (index==2){
-    dbPass = val;console.log("entered password: "+val)
+  if (array.length>2){
+    if(array[2]=="db"){
+      //start w database
+    }else if(array[2]=="no"){
+      //start ohne database
+    }else{
+      console.log("invalid argument >w<");
+      process.exit(code)
+    }
+  }else{
+    console.log("provide an argument pls ;3");
+    process.exit();
   }
 
 });
-
-//if no password there, complain and start without database
-//might change the code later, cuz im changing the password later anyways
-if(dbPass==null||dbPass==0||dbPass==""){
-  console.log("no password provided, the program will start without database")
-}else{
 
 //for security reasons, the database info will be taken outta there
 const dbj= JSON.parse(fs.readFileSync('../db.json','utf8')); //get the database data from a file outside the project
@@ -54,10 +55,8 @@ db.connect((err) => {
         return;
     }
     console.log("Connected to database!");
+    
 });
-
-
-}
 
 //let log="";
 let powerAverage=[];

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Solar Cleaning Manager</title>
+<link rel="stylesheet" href="style.css">
+	<script>
+       const API = "http://localhost:3001"
+        async function getInfo() {
+            try{
+                const response = await fetch(`${API}/data`);
+                const data = await response.json();
+                console.log(data);
+            }catch(err){
+            //throw away
+            }
+        }
+            setInterval(getInfo, 5000);
+	</script>
+</head>
+<body>
+    <div class="app">
+        <p>uhhhhhh... make front end i guess</p>
+    </div>
+</body>
+</html>
