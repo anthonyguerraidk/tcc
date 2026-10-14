@@ -1,27 +1,251 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Solar Cleaning Manager</title>
-<link rel="stylesheet" href="style.css">
-	<script>
-       const API = "http://localhost:3001"
-        async function getInfo() {
-            try{
-                const response = await fetch(`${API}/data`);
-                const data = await response.json();
-                console.log(data);
-            }catch(err){
-            //throw away
-            }
-        }
-            setInterval(getInfo, 5000);
-	</script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Database Manager</title>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="app">
-        <p>uhhhhhh... make front end i guess</p>
-    </div>
+<div class="app">
+    <header>
+        <div class="header-row">
+            <div>
+                <h1>Database Manager</h1>
+                <p>Solar Cleaning System</p>
+            </div>
+            <div id="connectionBadge" class="connection-badge">
+                <span class="dot"></span>
+                <span id="connectionText">Demo Mode</span>
+            </div>
+        </div>
+    </header>
+
+    <main class="section">
+
+        <div id="notice" class="notice" hidden></div>
+
+        <!-- Dashboard -->
+        <section id="dashboard" class="page active">
+            <div class="page-heading">
+                <h2>Overview</h2>
+                <button class="small-btn" onclick="refreshDashboard()">
+                    ↻ Refresh
+                </button>
+            </div>
+
+            <div class="stats">
+                <div class="stat-box">
+                    <span class="stat-icon">▤</span>
+                    <h3>Database Tables</h3>
+                    <p id="tableCount">4</p>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-icon">▦</span>
+                    <h3>Total Records</h3>
+                    <p id="recordCount">1,284</p>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-icon">●</span>
+                    <h3>Connection</h3>
+                    <p id="dbStatus" class="status-text">Demo</p>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-icon">◷</span>
+                    <h3>Last Sync</h3>
+                    <p id="lastSync" class="small-value">Just now</p>
+                </div>
+            </div>
+
+            <div class="card">
+                <h2>Database Connection</h2>
+                <div class="sensor">
+                    <span>Backend API</span>
+                    <strong id="apiAddress">localhost:3000</strong>
+                </div>
+                <div class="sensor">
+                    <span>Database engine</span>
+                    <strong id="dbEngine">Not configured</strong>
+                </div>
+                <div class="sensor">
+                    <span>Current mode</span>
+                    <strong id="modeText">Demo data</strong>
+                </div>
+                <button class="btn-secondary" onclick="testConnection()">
+                    Test Connection
+                </button>
+            </div>
+
+            <div class="card">
+                <div class="card-heading">
+                    <h2>Database Tables</h2>
+                    <button class="text-btn" onclick="showPage('tables')">
+                        View all →
+                    </button>
+                </div>
+                <div id="tableOverview"></div>
+            </div>
+
+            <div class="card">
+                <h2>Recent Activity</h2>
+                <div id="recentActivity"></div>
+            </div>
+        </section>
+
+        <!-- Tables -->
+        <section id="tables" class="page">
+            <h2>Table Manager</h2>
+            <p class="subtitle">Browse and manage database records.</p>
+
+            <div class="card">
+                <label for="tableSelect">Select table</label>
+                <select id="tableSelect" onchange="selectTable(this.value)">
+                    <option value="cleaning_history">cleaning_history</option>
+                    <option value="sensor_readings">sensor_readings</option>
+                    <option value="system_settings">system_settings</option>
+                    <option value="maintenance_logs">maintenance_logs</option>
+                </select>
+
+                <div class="table-info">
+                    <div>
+                        <span class="muted">Selected table</span>
+                        <strong id="selectedTable">cleaning_history</strong>
+                    </div>
+                    <div>
+                        <span class="muted">Records</span>
+                        <strong id="selectedCount">0</strong>
+                    </div>
+                </div>
+
+                <div class="search-row">
+                    <input id="recordSearch" type="search"
+                           placeholder="Search records..."
+                           oninput="renderRecords()">
+                    <button class="small-btn" onclick="openAddRecord()">
+                        + Add
+                    </button>
+                </div>
+
+                <div class="table-scroll">
+                    <table>
+                        <thead id="recordHead"></thead>
+                        <tbody id="recordBody"></tbody>
+                    </table>
+                </div>
+
+                <p class="table-footnote">
+                    Scroll horizontally to view all columns.
+                </p>
+            </div>
+
+            <div id="recordEditor" class="card" hidden>
+                <h2 id="editorTitle">Add Record</h2>
+                <form id="recordForm" onsubmit="saveRecord(event)">
+                    <div id="recordFields" class="form-fields"></div>
+                    <div class="button-row">
+                        <button type="submit" class="btn-primary">Save Record</button>
+                        <button type="button" class="btn-secondary"
+                                onclick="closeEditor()">Cancel</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- SQL console -->
+        <section id="queries" class="page">
+            <h2>SQL Console</h2>
+            <p class="subtitle">
+                Run database queries through your backend.
+            </p>
+
+            <div class="card">
+                <label for="sqlQuery">SQL Query</label>
+                <textarea id="sqlQuery" rows="7"
+                    spellcheck="false">SELECT * FROM cleaning_history;</textarea>
+
+                <div class="query-examples">
+                    <button class="example-btn"
+                        onclick="setQuery('SELECT * FROM cleaning_history;')">
+                        Cleaning history
+                    </button>
+                    <button class="example-btn"
+                        onclick="setQuery('SELECT * FROM sensor_readings;')">
+                        Sensor readings
+                    </button>
+                    <button class="example-btn"
+                        onclick="setQuery('SELECT * FROM system_settings;')">
+                        Settings
+                    </button>
+                </div>
+
+                <button class="btn-primary" onclick="runQuery()">
+                    ▶ Execute Query
+                </button>
+
+                <p class="query-warning">
+                    Only execute SQL from trusted users. The backend must
+                    enforce database permissions and query restrictions.
+                </p>
+            </div>
+
+            <div class="card">
+                <h2>Query Result</h2>
+                <p id="queryStatus" class="muted">No query executed.</p>
+                <div class="table-scroll">
+                    <table>
+                        <thead id="queryHead"></thead>
+                        <tbody id="queryBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Logs and backups -->
+        <section id="logs" class="page">
+            <h2>Maintenance & Logs</h2>
+            <p class="subtitle">Monitor database activity and backups.</p>
+
+            <div class="card">
+                <h2>Database Backup</h2>
+                <p class="description">
+                    Request a database backup from the backend server.
+                </p>
+                <button class="btn-primary" onclick="createBackup()">
+                    Create Backup
+                </button>
+                <p class="muted backup-note">
+                    Backups are not created in demo mode.
+                </p>
+            </div>
+
+            <div class="card">
+                <div class="card-heading">
+                    <h2>Activity Log</h2>
+                    <button class="text-btn" onclick="renderActivity()">
+                        ↻ Refresh
+                    </button>
+                </div>
+                <div id="activityList"></div>
+            </div>
+        </section>
+    </main>
+
+    <nav class="bottom-nav">
+        <button data-page="dashboard" class="active-nav"
+                onclick="showPage('dashboard')">
+            <span>⌂</span>Dashboard
+        </button>
+        <button data-page="tables" onclick="showPage('tables')">
+            <span>▤</span>Tables
+        </button>
+        <button data-page="queries" onclick="showPage('queries')">
+            <span>⌘</span>Queries
+        </button>
+        <button data-page="logs" onclick="showPage('logs')">
+            <span>◷</span>Logs
+        </button>
+    </nav>
+
+</div>
 </body>
 </html>
