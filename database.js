@@ -10,6 +10,7 @@ const PORT = 3001;
 const app = express();
 
 let dbta = {
+    status:false,
     tables:0,
     lastSeen:0,
     debugText:"hallo :3"
@@ -29,6 +30,7 @@ async function startDB(){
         port: 3306
     });
     console.log("Connected to database!");
+    dbta.status=true;
 }
 
 app.use(cors({

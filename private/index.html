@@ -8,32 +8,49 @@
     <script>
         const API = "http://localhost:3001"
         let lastSeen;
+        let stat;
+        let data;
         async function getInfo() {
-            let data;
             try{
                 const response = await fetch(`${API}/info`);
                 const d = await response.json();
                 data=d;
+                stat=d.status;
                 lastSeen=d.lastSeen;
             }catch(err){
                 console.log(err);
+                return;
+            }
+            if(stat){
+                document.getElementById("tableCount").innerText=data.tables;
+                document.getElementById("dot").style.color="green";
+                document.getElementById("dbStatus").style.color="green";
+                document.getElementById("dbStatus").innerText="UP";
+                document.getElementById("lastSeen").innerText="Just Now";
+                document.getElementById("apiAddress").innerText=API;
+            }else{
                 document.getElementById("dot").style.color="red";
                 document.getElementById("dbStatus").style.color="red";
                 document.getElementById("dbStatus").innerText="DOWN";
                 document.getElementById("lastSeen").innerText="-";
-                return;
+                
+                document.getElementById("apiAddress").innerText="-";
             }
-            document.getElementById("tableCount").innerText=data.tables;
-            document.getElementById("dot").style.color="green";
-            document.getElementById("dbStatus").style.color="green";
-            document.getElementById("dbStatus").innerText="UP";
-            document.getElementById("lastSeen").innerText="Just Now";
+        //BEHOLD!!!! DEBUGG!!!!
+        //console.log(data);
+        //
         }
-        setTimeout(function(){
-            let time = lastSeen-getTime();
+        getInfo();
+        setInterval(function(){
+            let time;
+            if(lastSeen>0||lastSeen!=null){
+                time = lastSeen-Date.now();
+            }
+            if(time==null||time<0){
+                time = "unAvailable";    
+            }
             document.getElementById("lastSeen").innerText=time;
         }, 30000);
-        getInfo();
     </script>
 </head>
 <body>
@@ -43,10 +60,6 @@
             <div>
                 <h1>Database Manager</h1>
                 <p>Solar Cleaning System</p>
-            </div>
-            <div id="connectionBadge" class="connection-badge">
-                <span class="dot"></span>
-                <span id="connectionText">Demo Mode</span>
             </div>
         </div>
     </header>
@@ -94,33 +107,20 @@
                     <strong id="apiAddress">localhost:3000</strong>
                 </div>
                 <div class="sensor">
-                    <span>Database engine</span>
-                    <strong id="dbEngine">Not configured</strong>
+                    <span>Database address</span>
+                    <strong id="dbEngine">NaN</strong>
                 </div>
                 <div class="sensor">
-                    <span>Current mode</span>
-                    <strong id="modeText">Demo data</strong>
+                    <span>---</span>
+                    <strong id="modeText">-</strong>
                 </div>
+                <!--
                 <button class="btn-secondary" onclick="testConnection()">
                     Test Connection
                 </button>
+                -->
             </div>
 
-            <div class="card">
-                <div class="card-heading">
-                    <h2>Database Tables</h2>
-                    <button class="text-btn" onclick="showPage('tables')">
-                        View all →
-                    </button>
-                </div>
-                <div id="tableOverview"></div>
-            </div>
-
-            <div class="card">
-                <h2>Recent Activity</h2>
-                <div id="recentActivity"></div>
-            </div>
-        </section>
 
         <!-- Tables -->
         <section id="tables" class="page">
