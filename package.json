@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "tcc project",
   "main": "database.js",
+  "type": "module",
   "dependencies": {
     "accepts": "^2.0.0",
     "bytes": "^3.1.2",

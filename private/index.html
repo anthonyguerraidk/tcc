@@ -5,6 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solar Database Manager</title>
     <link rel="stylesheet" href="style.css">
+    <script>
+        const API = "http://localhost:3001"
+        let lastSeen;
+        async function getInfo() {
+            let data;
+            try{
+                const response = await fetch(`${API}/info`);
+                const d = await response.json();
+                data=d;
+                lastSeen=d.lastSeen;
+            }catch(err){
+                console.log(err);
+                document.getElementById("dot").style.color="red";
+                document.getElementById("dbStatus").style.color="red";
+                document.getElementById("dbStatus").innerText="DOWN";
+                document.getElementById("lastSeen").innerText="-";
+                return;
+            }
+            document.getElementById("tableCount").innerText=data.tables;
+            document.getElementById("dot").style.color="green";
+            document.getElementById("dbStatus").style.color="green";
+            document.getElementById("dbStatus").innerText="UP";
+            document.getElementById("lastSeen").innerText="Just Now";
+        }
+        setTimeout(function(){
+            let time = lastSeen-getTime();
+            document.getElementById("lastSeen").innerText=time;
+        }, 30000);
+        getInfo();
+    </script>
 </head>
 <body>
 <div class="app">
@@ -29,7 +59,7 @@
         <section id="dashboard" class="page active">
             <div class="page-heading">
                 <h2>Overview</h2>
-                <button class="small-btn" onclick="refreshDashboard()">
+                <button class="small-btn" onclick="getInfo()">
                     ↻ Refresh
                 </button>
             </div>
@@ -38,22 +68,22 @@
                 <div class="stat-box">
                     <span class="stat-icon">▤</span>
                     <h3>Database Tables</h3>
-                    <p id="tableCount">4</p>
+                    <p id="tableCount">0</p>
                 </div>
                 <div class="stat-box">
                     <span class="stat-icon">▦</span>
                     <h3>Total Records</h3>
-                    <p id="recordCount">1,284</p>
+                    <p id="recordCount">idk</p>
                 </div>
                 <div class="stat-box">
-                    <span class="stat-icon">●</span>
+                    <span id="dot" style="color: red;">●</span>
                     <h3>Connection</h3>
-                    <p id="dbStatus" class="status-text">Demo</p>
+                    <p id="dbStatus" style="color: red;">-</p>
                 </div>
                 <div class="stat-box">
                     <span class="stat-icon">◷</span>
                     <h3>Last Sync</h3>
-                    <p id="lastSync" class="small-value">Just now</p>
+                    <p id="lastSeen" class="small-value">Just now</p>
                 </div>
             </div>
 

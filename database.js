@@ -9,6 +9,11 @@ const __dirname = path.dirname(__filename);
 const PORT = 3001;
 const app = express();
 
+let dbta = {
+    tables:0,
+    lastSeen:0,
+    debugText:"hallo :3"
+}
 
 const dbj = JSON.parse(
     fs.readFileSync('../db.json', 'utf8')
@@ -28,11 +33,9 @@ async function startDB(){
 
 app.use(cors({
   origin: "http://localhost:3001",
-}));//setup cors, what a pain in my ass eh
-app.use(express.json()); //so express can properly parse json
-app.use(express.static('private')); //allowing server access to everything inside public/
-
-//default request ("/")
+}));
+app.use(express.json()); 
+app.use(express.static('private'));
 app.get('/', (req, res) => {res.sendFile(path.join(__dirname, 'index.html'));});
 
 app.get('/data', async (req, res) => {
@@ -40,6 +43,10 @@ app.get('/data', async (req, res) => {
     //console.log(rows);
     res.json(rows);
 
+});
+
+app.get('/info', async (req, res) => {
+    res.json(dbta);
 });
 
 app.listen(PORT, () => {
