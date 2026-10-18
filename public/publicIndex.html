@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Solar Cleaning Manager</title>
+    <link rel="stylesheet" href="style.css">
+	<script>
+       const API = "http://localhost:3000"
+       //const API = "http://192.168.50.1:3000"; //configured according to lan script
+        
+        //this variable tracks whether one of the funcition buttons has been pressed
+        //so there is immediate feedback to the user, 
+        //bc theres a delay before the esp answers
+        let cleanDown=false;
+
+        let pages=["dashboard","logs"]
+        function changePage(page){
+            let ok=false;
+            for(let i=0;i<pages.length;i++){
+                document.getElementById(pages[i]).setAttribute("hidden","");
+                if(page==pages[i]){ok=true;}
+            }
+            if(!ok){
+                document.getElementById("dashboard").removeAttribute("hidden",);
+                console.log("page doesnt exist");
+                return;
+            }
+            document.getElementById(page).removeAttribute("hidden");
+        }
+
+        async function getInfo() {
+            try{
+                const response = await fetch(`${API}/data`);
+                const data = await response.json();
+                let esp=data.esp;
+                
+                if(!data.connected){
+                    console.log("esp disconnected... :p")
+                    document.getElementById("stats").removeAttribute("hidden");
+                    disBtns();
+                    return;
+                }
+
+                if(esp.status=="nowCleaning"||cleanDown){
+                    disBtns();
+                }else if(esp.status=="idle"||esp.status=="doneCleaning"){
+                    enBtns();
+                }else{
+                    disBtns();
+                    console.log(`Invalid state...?\n${esp.satus}`)
+                }
+
+                document.getElementById("stats").setAttribute("hidden", "");
+
+                document.getElementById("panelsCleaned").innerText = esp.panelsCleaned;
+                document.getElementById("waterUsage").innerText = `${esp.waterUsage}L`;
+                document.getElementById("voltageInput").innerText = `${esp.power}V`;
+                document.getElementById("dustLevel").innerText = esp.dustLevel;
+                document.getElementById("waterTank").innerText = `${esp.waterTank}%`;
+        
+                const pump = document.getElementById("pumpStatus");
+                pump.innerText = esp.pumpStatus ? "Active" : "Stopped";
+                pump.style.color = esp.pumpStatus ? "green" : "red";
+                document.getElementById("autoMode").checked = esp.autoMode;
+                console.log(`currently: ${esp.command}`)
+                
+            }catch (err) {
+                    console.log("backEnd is not runnin? mayb connection problm?")
+                    document.getElementById("stats").removeAttribute("hidden"); 
+                    disBtns();
+                console.error(err);
+            }
+        }
+
+        getInfo();
+
+        function disBtns(){
+            cleanDown=false;//for some reason it works here... well, whatever
+            document.querySelectorAll("#actions button").forEach(btn => {
+                btn.setAttribute("disabled","");
+                btn.setAttribute("class","dis");
+            });
+        }
+
+        function enBtns(){
+            cleanDown=false;
+            document.querySelectorAll("#actions button").forEach(btn => {
+                btn.removeAttribute("disabled","");
+                document.getElementById("clen").setAttribute("class","btn-primary");
+                document.getElementById("stop").setAttribute("class","btn-danger");
+            });
+        }
+
+        async function startCleaning() {
+            cleanDown=true;
+            try {
+                const response = await fetch(`${API}/clean/start`, {
+                    method: "POST"
+                });
+                const data = await response.json();
+                console.log(data.command);
+                getInfo();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        async function stopCleaning() {
+            try {
+                await fetch(`${API}/clean/stop`, {
+                    method: "POST"
+                });
+        
+                getInfo();
+            } catch (err) {
+                console.error(err);
+            }
+        }
+        
+        document.addEventListener("DOMContentLoaded", () => {
+        
+            document.getElementById("autoMode").addEventListener("change", async function () {
+        
+                await fetch(`${API}/auto`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        enabled: this.checked
+                    })
+                });
+        
+            });
+        
+            getInfo();
+        
+            // Refresh every 4 seconds
+            setInterval(getInfo, 4000);
+            disBtns();
+        });
+	</script>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>Solar Cleaning Manager</h1>
+            <p>Mobile Control System</p>
+        </header>
+        
+        <div class="section">
+        
+            <div hidden id="stats" style="background-color: red;" class="card">
+                <center><h1 id="status"><center>not connected... qwq</center></h1></center>
+            </div>
+    
+            <div id="dashboard" class="card">
+                <h2>Dashboard</h2>
+        
+                <div class="stats">
+                    <div class="stat-box">
+                        <h3>Panels Cleaned</h3>
+                        <p id="panelsCleaned">0</p>
+                    </div>
+        
+                    <div class="stat-box">
+                        <h3>Water Usage</h3>
+                        <p id="waterUsage">0</p>
+                    </div>
+                </div>
+
+                <div class="sensors">
+                    <div class="sensor">
+                        <span>Current voltage</span>
+                        <strong id="voltageInput">0</strong>
+                    </div>
+            
+                    <div class="sensor">
+                        <span>Dust Level</span>
+                        <strong id="dustLevel">Low</strong>
+                    </div>
+            
+                    <div class="sensor">
+                        <span>Water Tank</span>
+                        <strong id="waterTank">0%</strong>
+                    </div>
+            
+                    <div class="sensor">
+                        <span>Pump Status</span>
+                        <strong id="pumpStatus" style="color:green;">Unknown</strong>
+                    </div>
+                </div>
+                
+                <div id="actions">
+                    <button id="clen" class="btn-primary" onclick="startCleaning()">
+                        Start Cleaning
+                    </button>
+            
+                    <!--<button class="btn-secondary">
+                        Rinsing Mode
+                    </button>-->
+            
+                    <!--<button class="btn-secondary">
+                        Brushing Mode
+                    </button>-->
+            
+                    <!--work on this-->
+                    <button id="stop" class="btn-danger" onclick="stopCleaning()">
+                        Stop System
+                    </button>
+    
+                </div>
+                
+                <br>
+
+                <div class="card">
+                    <div class="toggle">
+                        <div>
+                            <h2>Automatic Activation</h2>
+                            <p style="font-size:14px;color:#666;">
+                                Activate cleaning based on sensors
+                            </p>
+                        </div>
+            
+                        <label class="switch">
+                            <input type="checkbox" id="autoMode" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+            </div>
+        
+            <div hidden id="logs" class="card">
+                <h2>Cleaning Log</h2>
+        
+                <div class="log-item">
+                    <div class="log-date">May 28, 2026 - 09:40</div>
+                    <strong>Automatic Cleaning</strong>
+                    <p>Dust accumulation detected</p>
+                    <div class="badge">Rinsing + Brushing</div>
+                </div>
+        
+                <div class="log-item">
+                    <div class="log-date">May 27, 2026 - 17:20</div>
+                    <strong>Manual Cleaning</strong>
+                    <p>Routine maintenance</p>
+                    <div class="badge">Rinsing Only</div>
+                </div>
+            </div>
+        </div>
+        
+    <nav class="bottom-nav">
+        <button onclick="changePage('dashboard')">
+            <span>⌂</span>Dashboard
+        </button>
+        <button onclick="changePage('logs')">
+            <span>▤</span>Logs
+        </button>
+    </nav>
+
+    </div>
+</body>
+</html>

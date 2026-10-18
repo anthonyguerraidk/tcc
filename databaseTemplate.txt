@@ -1,0 +1,112 @@
+
+CREATE DATABASE IF NOT EXISTS testDatabase
+    CHARACTER SET utf8mb4
+    COLLATE utf8mb4_unicode_ci;
+
+USE testDatabase;
+
+CREATE TABLE IF NOT EXISTS sensor_readings (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    power DECIMAL(8,3) NOT NULL DEFAULT 0.000,
+    dust_level DECIMAL(8,3) NOT NULL DEFAULT 0.000,
+    water_tank DECIMAL(8,3) NOT NULL DEFAULT 0.000,
+    water_usage DECIMAL(8,3) NOT NULL DEFAULT 0.000,
+
+    pump_running BOOLEAN NOT NULL DEFAULT FALSE,
+
+    esp_status VARCHAR(50) NOT NULL DEFAULT 'idle',
+    command_ack VARCHAR(255) DEFAULT NULL,
+
+    recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_sensor_recorded_at (recorded_at)
+);
+
+CREATE TABLE IF NOT EXISTS cleaning_history (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    started_at DATETIME DEFAULT NULL,
+    completed_at DATETIME DEFAULT NULL,
+
+    duration_seconds INT UNSIGNED DEFAULT NULL,
+
+    cleaning_status ENUM(
+        'pending',
+        'running',
+        'completed',
+        'failed',
+        'cancelled'
+    ) NOT NULL DEFAULT 'pending',
+
+    power_before DECIMAL(8,3) DEFAULT NULL,
+    power_after DECIMAL(8,3) DEFAULT NULL,
+
+    dust_before DECIMAL(8,3) DEFAULT NULL,
+    dust_after DECIMAL(8,3) DEFAULT NULL,
+
+    water_used DECIMAL(8,3) DEFAULT NULL,
+
+    notes TEXT DEFAULT NULL,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_cleaning_started_at (started_at),
+    INDEX idx_cleaning_status (cleaning_status)
+);
+
+CREATE TABLE IF NOT EXISTS system_settings (
+    id INT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    setting_key VARCHAR(100) NOT NULL UNIQUE,
+    setting_value TEXT DEFAULT NULL,
+    description VARCHAR(255) DEFAULT NULL,
+
+    updated_at TIMESTAMP NOT NULL
+        DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS maintenance_logs (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+
+    event_type VARCHAR(100) NOT NULL,
+    description TEXT NOT NULL,
+
+    severity ENUM(
+        'info',
+        'warning',
+        'error',
+        'critical'
+    ) NOT NULL DEFAULT 'info',
+
+    resolved BOOLEAN NOT NULL DEFAULT FALSE,
+    resolved_at DATETIME DEFAULT NULL,
+
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    INDEX idx_maintenance_created_at (created_at),
+    INDEX idx_maintenance_resolved (resolved)
+);
+
+INSERT IGNORE INTO system_settings
+    (setting_key, setting_value, description)
+VALUES
+    ('sampling_interval_seconds', '60',
+     'Interval between stored sensor readings'),
+
+    ('cleaning_enabled', 'true',
+     'Whether automatic cleaning is enabled'),
+
+    ('water_tank_capacity', '0',
+     'Maximum water tank capacity; configure your actual value'),
+
+    ('dust_threshold', '0',
+     'Dust level that triggers a cleaning operation');
+
+SHOW TABLES;
+
+DESCRIBE sensor_readings;
+DESCRIBE cleaning_history;
+DESCRIBE system_settings;
+DESCRIBE maintenance_logs;

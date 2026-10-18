@@ -6,6 +6,20 @@
     <title>Solar Database Manager</title>
     <link rel="stylesheet" href="style.css">
     <script>
+        let pages=["dashboard","console","tables"]
+        function changePage(page){
+            let ok=false;
+            for(let i=0;i<pages.length;i++){
+                document.getElementById(pages[i]).setAttribute("hidden","");
+                if(page==pages[i]){ok=true;}
+            }
+            if(!ok){
+                document.getElementById("dashboard").removeAttribute("hidden",);
+                console.log("page doesnt exist");
+                return;
+            }
+            document.getElementById(page).removeAttribute("hidden");
+        }
         const API = "http://localhost:3001"
         let lastSeen;
         let stat;
@@ -28,6 +42,9 @@
                 document.getElementById("dbStatus").innerText="UP";
                 document.getElementById("lastSeen").innerText="Just Now";
                 document.getElementById("apiAddress").innerText=API;
+
+                document.getElementById("sendQuery").removeAttribute("disabled","");
+                document.getElementById("sendQuery").setAttribute("class","btn-primary");
             }else{
                 document.getElementById("dot").style.color="red";
                 document.getElementById("dbStatus").style.color="red";
@@ -35,6 +52,9 @@
                 document.getElementById("lastSeen").innerText="-";
                 
                 document.getElementById("apiAddress").innerText="-";
+
+                document.getElementById("sendQuery").setAttribute("disabled","");
+                document.getElementById("sendQuery").setAttribute("class","dis");
             }
         //BEHOLD!!!! DEBUGG!!!!
         //console.log(data);
@@ -65,19 +85,10 @@
     </header>
 
     <main class="section">
-
-        <div id="notice" class="notice" hidden></div>
-
-        <!-- Dashboard -->
-        <section id="dashboard" class="page active">
-            <div class="page-heading">
-                <h2>Overview</h2>
-                <button class="small-btn" onclick="getInfo()">
-                    ↻ Refresh
-                </button>
-            </div>
-
-            <div class="stats">
+        <button class="small-btn" onclick="getInfo()">
+            ↻ Refresh
+        </button>
+        <div class="stats">
                 <div class="stat-box">
                     <span class="stat-icon">▤</span>
                     <h3>Database Tables</h3>
@@ -100,6 +111,12 @@
                 </div>
             </div>
 
+        <!-- Dashboard -->
+        <section id="dashboard">
+            <div class="page-heading">
+                <h2>Overview</h2>
+            </div>
+
             <div class="card">
                 <h2>Database Connection</h2>
                 <div class="sensor">
@@ -120,13 +137,49 @@
                 </button>
                 -->
             </div>
+        </section>
 
+        <!-- SQL console -->
+        <section hidden id="console">
+            <h2>SQL Console</h2>
+            <div class="card">
+                <label for="sqlQuery">SQL Query</label>
+                <textarea id="sqlQuery" rows="7" spellcheck="false" placeholder="insert query here"></textarea>
+
+                <!--work on this later-->
+                <div hidden class="query-examples">
+                    <button class="example-btn"
+                        onclick="setQuery('SELECT * FROM cleaning_history;')">
+                        Cleaning history
+                    </button>
+                    <button class="example-btn"
+                        onclick="setQuery('SELECT * FROM sensor_readings;')">
+                        Sensor readings
+                    </button>
+                    <button class="example-btn"
+                        onclick="setQuery('SELECT * FROM system_settings;')">
+                        Settings
+                    </button>
+                </div>
+
+                <button id="sendQuery" class="btn-primary" onclick="runQuery()">
+                    ▶ Execute Query
+                </button>
+
+                <p class="query-warning">
+                    Be extremely careful with what you write here
+                </p>
+            </div>
+
+            <div class="card">
+                <h2>Query Result</h2>
+                <p id="queryStatus" class="muted">empty</p>
+            </div>
+        </section>
 
         <!-- Tables -->
-        <section id="tables" class="page">
+        <section hidden id="tables">
             <h2>Table Manager</h2>
-            <p class="subtitle">Browse and manage database records.</p>
-
             <div class="card">
                 <label for="tableSelect">Select table</label>
                 <select id="tableSelect" onchange="selectTable(this.value)">
@@ -181,98 +234,18 @@
             </div>
         </section>
 
-        <!-- SQL console -->
-        <section id="queries" class="page">
-            <h2>SQL Console</h2>
-            <p class="subtitle">
-                Run database queries through your backend.
-            </p>
-
-            <div class="card">
-                <label for="sqlQuery">SQL Query</label>
-                <textarea id="sqlQuery" rows="7"
-                    spellcheck="false">SELECT * FROM cleaning_history;</textarea>
-
-                <div class="query-examples">
-                    <button class="example-btn"
-                        onclick="setQuery('SELECT * FROM cleaning_history;')">
-                        Cleaning history
-                    </button>
-                    <button class="example-btn"
-                        onclick="setQuery('SELECT * FROM sensor_readings;')">
-                        Sensor readings
-                    </button>
-                    <button class="example-btn"
-                        onclick="setQuery('SELECT * FROM system_settings;')">
-                        Settings
-                    </button>
-                </div>
-
-                <button class="btn-primary" onclick="runQuery()">
-                    ▶ Execute Query
-                </button>
-
-                <p class="query-warning">
-                    Only execute SQL from trusted users. The backend must
-                    enforce database permissions and query restrictions.
-                </p>
-            </div>
-
-            <div class="card">
-                <h2>Query Result</h2>
-                <p id="queryStatus" class="muted">No query executed.</p>
-                <div class="table-scroll">
-                    <table>
-                        <thead id="queryHead"></thead>
-                        <tbody id="queryBody"></tbody>
-                    </table>
-                </div>
-            </div>
-        </section>
-
-        <!-- Logs and backups -->
-        <section id="logs" class="page">
-            <h2>Maintenance & Logs</h2>
-            <p class="subtitle">Monitor database activity and backups.</p>
-
-            <div class="card">
-                <h2>Database Backup</h2>
-                <p class="description">
-                    Request a database backup from the backend server.
-                </p>
-                <button class="btn-primary" onclick="createBackup()">
-                    Create Backup
-                </button>
-                <p class="muted backup-note">
-                    Backups are not created in demo mode.
-                </p>
-            </div>
-
-            <div class="card">
-                <div class="card-heading">
-                    <h2>Activity Log</h2>
-                    <button class="text-btn" onclick="renderActivity()">
-                        ↻ Refresh
-                    </button>
-                </div>
-                <div id="activityList"></div>
-            </div>
-        </section>
     </main>
 
+
     <nav class="bottom-nav">
-        <button data-page="dashboard" class="active-nav"
-                onclick="showPage('dashboard')">
+        <button onclick="changePage('dashboard')">
             <span>⌂</span>Dashboard
         </button>
-        <button data-page="tables" onclick="showPage('tables')">
+        <button onclick="changePage('console')">
+            <span>⌘</span>SQL Console
+        </button>
+        <button onclick="changePage('tables')">
             <span>▤</span>Tables
-        </button>
-        <button data-page="queries" onclick="showPage('queries')">
-            <span>⌘</span>Queries
-        </button>
-        <button data-page="logs" onclick="showPage('logs')">
-            <span>◷</span>Logs
         </button>
     </nav>
 
