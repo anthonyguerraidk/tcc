@@ -7,6 +7,12 @@
     <link rel="stylesheet" href="style.css">
     <script>
         let pages=["dashboard","console","tables"]
+        const API = "http://localhost:3001"
+        let lastSeen;
+        let stat;
+        let data;
+        let authenticated=false;
+
         function changePage(page){
             let ok=false;
             for(let i=0;i<pages.length;i++){
@@ -20,10 +26,7 @@
             }
             document.getElementById(page).removeAttribute("hidden");
         }
-        const API = "http://localhost:3001"
-        let lastSeen;
-        let stat;
-        let data;
+
         async function getInfo() {
             try{
                 const response = await fetch(`${API}/info`);
@@ -60,6 +63,26 @@
         //console.log(data);
         //
         }
+
+        async function authenticateUser(){
+            let user = prompt("type your name:");
+            const confirmation = await fetch(`${API}/userAuth/name/${user}`);
+            const n = await confirmation.json();
+            console.log(n);
+            if(!n.valid){
+                alert("invalid username");
+                return;
+            }
+            let pass = prompt("type the password for "+n.name);
+            const auth = await fetch(`${API}/userAuth/pass`);
+            const p = await auth.json();
+            if(!p.valid){
+                console.log("invalid password for user "+n.name);
+                return;
+            }
+            authenticated=true;
+        }
+
         getInfo();
         setInterval(function(){
             let time;
@@ -219,6 +242,18 @@
                 <p class="table-footnote">
                     Scroll horizontally to view all columns.
                 </p>
+            </div>
+            
+            <div class="card">
+                <h2>RECREATE DATABASE</h2>
+                
+                <button id="Authenticate" class="btn-primary" style="background-color:var(--navy);" onclick="authenticateUser()">
+                    Authenticate User
+                </button>
+
+                <button disabled id="sendDanger" class="dis" onclick="recreateDatabase()">
+                    ▶ Recreate Whole Database
+                </button>
             </div>
 
             <div id="recordEditor" class="card" hidden>

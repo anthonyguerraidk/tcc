@@ -10,7 +10,7 @@ const PORT = 3001;
 const app = express();
 
 let database=false;//false=local database, true=actual database
-
+let dbj;
 let dbta = {
     status:false,
     tables:0,
@@ -21,20 +21,21 @@ let dbta = {
 process.argv.forEach(function (val, index, array) {
   if (array.length>2){
     if(array[2]=="db"){
-      //start w local database
+      console.log("starting with local database");
       database=false;
     }else{
+      console.log("starting with normal database");
       database=true;
     }
   }else{
     console.log("no argument provided, starting with normal database");
+    database=true;
   }
 
 });
 
-
 if(database){
-  const dbj = JSON.parse(
+  dbj = JSON.parse(
     fs.readFileSync('../db.json', 'utf8')
 );
 }
@@ -104,6 +105,59 @@ app.get('/data', async (req, res) => {
 app.get('/createDefaultDatabase',async(req,res)=>{
     createDatabase();
 })
+
+/////////////////////////////////////////////////////////////////////////////////
+//review this code whole//
+
+app.get('/userAuth/:part/:name', async (req, res) => {
+    const { part, name } = req.params;
+
+    try {
+        if (part === 'name') {
+            const result = await db.query('select * from users where name = ?',[name])[0];
+            
+            /*
+            if(result.rows===undefined||result.rows===null){
+                return res.status(404).json({
+                    message: 'User not found, undefined'
+                });
+            }
+            */
+
+            if (result.rows.length === 0) {
+                return res.status(404).json({
+                    message: 'User not found, 0 rows'
+                });
+            }
+
+            return res.status(200).json({
+                message: 'User found',
+                valid:true,
+                user: result.rows[0]
+            });
+
+        } else if (part === 'pass') {
+            // Implement password verification here.
+            return res.status(501).json({
+                message: 'Password verification not implemented'
+            });
+
+        } else {
+            return res.status(400).json({
+                message: 'Invalid part. Use "name" or "pass".'
+            });
+        }
+    } catch (error) {
+        console.error('Authentication error:', error);
+
+        return res.status(500).json({
+            message: 'Internal server error'
+        });
+    }
+});
+
+//review this code whole//
+/////////////////////////////////////////////////////////////////////////////////
 
 app.get('/info', async (req, res) => {
     res.json(dbta);

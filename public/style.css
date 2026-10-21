@@ -209,7 +209,7 @@ select:focus-visible, textarea:focus-visible {
     outline-offset: 2px;
 }
 
-.btn-primary, .dis, .btn-danger, .btn-secondary {
+.btn-primary, .alw, .dis, .btn-danger, .btn-secondary {
     width: 100%;
     border: none;
     border-radius: 10px;
@@ -224,6 +224,13 @@ select:focus-visible, textarea:focus-visible {
     color:white;
     cursor: not-allowed;
 }
+
+.alw{
+    background:var(--green);
+    color:white;
+    cursor: none;
+}
+
 
 .btn-primary {
     background: var(--green);
