@@ -99,7 +99,7 @@ VALUES
      'Whether automatic cleaning is enabled'),
 
     ('water_tank_capacity', '0',
-     'Maximum water tank capacity; configure your actual value'),
+     'Maximum water tank capacity, configure your actual value'),
 
     ('dust_threshold', '0',
      'Dust level that triggers a cleaning operation');

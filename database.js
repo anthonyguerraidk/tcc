@@ -21,10 +21,8 @@ let dbta = {
 process.argv.forEach(function (val, index, array) {
   if (array.length>2){
     if(array[2]=="db"){
-      console.log("starting with local database");
       database=false;
     }else{
-      console.log("starting with normal database");
       database=true;
     }
   }else{
@@ -41,30 +39,28 @@ if(database){
 }
 
 let db;
-async function startDB(){
-  if(database){
-    db = await mysql.createConnection({
-        host: dbj.host,
-        user: dbj.user,
-        password: dbj.pass,
-        database: dbj.db,
-        port: 3306
-    });
-    console.log("Connected to database!");
-    dbta.status=true;
-  }else{
+
+async function localDatabase(){
     try{
-    db = await mysql.createConnection({
-        host: "localhost",
-        user: "root",
-        database:"testDatabase",
-        port: 3306,
-        password:""
+        console.log("connecting to localDatabase")
+        db = await mysql.createConnection({
+            host: "localhost",
+            user: "root",
+            database:"testDatabase",
+            port: 3306,
+            password:""
     });    
     }catch(err){
         if(err.errno==1049){
-            console.log("\nATTENTION\nno database found in the server, creating a new one in 5 seconds, to cancel press ctrl+c\n");
-            setTimeout(async function(){
+            console.log("database was not found, creating a new");
+            createDatabase();
+        }
+    }
+}
+
+async function createDatabase(){
+    console.log("creating database in 5 seconds, press Ctrl + C to cancel")
+        setTimeout(async function(){
                 let tempdb = await mysql.createConnection({
                     host: "localhost",
                     user: "root",
@@ -73,17 +69,54 @@ async function startDB(){
 
                 try {
                     let wholeNewDatabaseQuery=fs.readFileSync('databaseTemplate.txt', 'utf8')
-                    //console.log(wholeNewDatabaseQuery);
-                    await tempdb.query(wholeNewDatabaseQuery);
+                    
+                     const cleanedSql = wholeNewDatabaseQuery
+                        .split(/\r?\n/)
+                        .filter(line => !line.trim().startsWith('--'))
+                        .join('\n');
+
+                     const statements = cleanedSql
+                        .split(';')
+                        .map(statement => statement.trim())
+                        .filter(statement => statement.length > 0);
+
+                     for (const statement of statements) {
+                        await tempdb.query(statement);
+                    }
+                    
+                    //await tempdb.query(wholeNewDatabaseQuery);
+                    console.log('Database created OwO');
+                    console.log("runnin now :3")
+                }catch(err){
+                    console.log(err);
                 } finally {
                   await tempdb.end(); // Closes the connection
                 }
-
             },5000);
-        }else{
-            throw err;
-        }
-    }    
+    }
+
+
+async function startDB(){
+  if(database){
+    console.log("connecting to 'real' database")
+    try{
+        db = await mysql.createConnection({
+        host: dbj.host,
+        user: dbj.user,
+        password: dbj.pass,
+        database: dbj.db,
+        port: 3306
+    });
+    console.log("Connected to database!");
+    dbta.status=true;
+    }catch(err){
+        console.log("error in connecting to real database, terminating program");
+        console.log(err);
+        process.exit();
+    }
+  }else{
+    console.log("starting local database")
+    localDatabase();
   }
 }
 
