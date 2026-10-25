@@ -1,0 +1,16 @@
+to do:
+most important: implement logging system so automatic cleaning is possible (add that too)
+
+add users in database creation script
+
+finish database.js:
+	finish auth part
+	add database options (finish database re-creation)
+	(for some reason in the front page, when connected to local database it shows as down (disconnected))
+	add/finish the whole sql console part
+
+server.js is pretty much done, finish logging system (which is priority anyways)
+
+
+
+
