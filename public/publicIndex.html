@@ -6,13 +6,58 @@
     <title>Solar Cleaning Manager</title>
     <link rel="stylesheet" href="style.css">
 	<script>
-       const API = "http://localhost:3000"
-       //const API = "http://192.168.50.1:3000"; //configured according to lan script
-        
+        const API = "http://localhost:3000"
+        //const API = "http://192.168.50.1:3000"; //configured according to lan script
         //this variable tracks whether one of the funcition buttons has been pressed
         //so there is immediate feedback to the user, 
         //bc theres a delay before the esp answers
         let cleanDown=false;
+
+        async function getInfo() {
+            try{
+                const response = await fetch(`${API}/data`);
+                const data = await response.json();
+                let esp=data.esp;
+                
+                if(!data.connected){
+                    genESP32("down");
+                    return;
+                }
+
+                if(esp.status=="nowCleaning"||cleanDown){
+                    disBtns();
+                }else if(esp.status=="idle"||esp.status=="doneCleaning"){
+                    enBtns();
+                }else{
+                    disBtns();
+                    console.log(`Invalid state...?\n${esp.satus}`)
+                }
+
+                genESP32("up");
+
+                document.getElementById("panelsCleaned").innerText = esp.panelsCleaned;
+                document.getElementById("waterUsage").innerText = `${esp.waterUsage}L`;
+                document.getElementById("voltageInput").innerText = `${esp.power}V`;
+                document.getElementById("dustLevel").innerText = esp.dustLevel;
+                document.getElementById("waterTank").innerText = `${esp.waterTank}%`;
+        
+                const pump = document.getElementById("pumpStatus");
+                pump.innerText = esp.pumpStatus ? "Active" : "Stopped";
+                pump.style.color = esp.pumpStatus ? "green" : "red";
+                document.getElementById("autoMode").checked = esp.autoMode;
+                console.log(`currently: ${esp.command}`)
+                
+            }catch (err) {
+                    console.log("backEnd is not runnin? mayb connection problm?")
+                    genESP32("down");
+                    disBtns();
+                console.error(err);
+            }
+        }
+        getInfo();
+
+
+// \/   page functions
 
         let pages=["dashboard","logs"]
         function changePage(page){
@@ -29,51 +74,85 @@
             document.getElementById(page).removeAttribute("hidden");
         }
 
-        async function getInfo() {
-            try{
-                const response = await fetch(`${API}/data`);
-                const data = await response.json();
-                let esp=data.esp;
-                
-                if(!data.connected){
-                    console.log("esp disconnected... :p")
-                    document.getElementById("stats").removeAttribute("hidden");
-                    disBtns();
-                    return;
-                }
+        function genDB(a){
+//          switch version:
 
-                if(esp.status=="nowCleaning"||cleanDown){
+            switch (a) {
+                case "up":
+                    document.getElementById("dotdb").style.color="green";
+                    document.getElementById("dbStatus").style.color="green";
+                    document.getElementById("dbStatus").innerText="UP";   
+                    enBtns(); 
+                break;
+                case "down":
+                    console.log("esp disconnected... :p");
+                default:
+                    document.getElementById("dotdb").style.color="red";
+                    document.getElementById("dbStatus").style.color="red";
+                    document.getElementById("dbStatus").innerText="DOWN";
                     disBtns();
-                }else if(esp.status=="idle"||esp.status=="doneCleaning"){
-                    enBtns();
-                }else{
-                    disBtns();
-                    console.log(`Invalid state...?\n${esp.satus}`)
-                }
-
-                document.getElementById("stats").setAttribute("hidden", "");
-
-                document.getElementById("panelsCleaned").innerText = esp.panelsCleaned;
-                document.getElementById("waterUsage").innerText = `${esp.waterUsage}L`;
-                document.getElementById("voltageInput").innerText = `${esp.power}V`;
-                document.getElementById("dustLevel").innerText = esp.dustLevel;
-                document.getElementById("waterTank").innerText = `${esp.waterTank}%`;
-        
-                const pump = document.getElementById("pumpStatus");
-                pump.innerText = esp.pumpStatus ? "Active" : "Stopped";
-                pump.style.color = esp.pumpStatus ? "green" : "red";
-                document.getElementById("autoMode").checked = esp.autoMode;
-                console.log(`currently: ${esp.command}`)
-                
-            }catch (err) {
-                    console.log("backEnd is not runnin? mayb connection problm?")
-                    document.getElementById("stats").removeAttribute("hidden"); 
-                    disBtns();
-                console.error(err);
+                break;
             }
+
+
+/*          if version:
+
+            if(a=="down"){
+                console.log("esp disconnected... :p");
+                    document.getElementById("dotesp").style.color="red";
+                    document.getElementById("espStatus").style.color="red";
+                    document.getElementById("espStatus").innerText="DOWN";
+                    disBtns();
+            }else if(a=="up"){
+                document.getElementById("dotesp").style.color="green";
+                document.getElementById("espStatus").style.color="green";
+                document.getElementById("espStatus").innerText="UP";
+                enBtns();
+            }else{
+                //repeat a=="down" code
+            }
+*/
         }
 
-        getInfo();
+        function genESP32(a){
+//          switch version:
+
+            switch (a) {
+                case "up":
+                    document.getElementById("dotesp").style.color="green";
+                    document.getElementById("espStatus").style.color="green";
+                    document.getElementById("espStatus").innerText="UP";   
+                    enBtns(); 
+                break;
+                case "down":
+                    console.log("esp disconnected... :p");
+                default:
+                    document.getElementById("dotesp").style.color="red";
+                    document.getElementById("espStatus").style.color="red";
+                    document.getElementById("espStatus").innerText="DOWN";
+                    disBtns();
+                break;
+            }
+
+
+/*          if version:
+
+            if(a=="down"){
+                console.log("esp disconnected... :p");
+                    document.getElementById("dotesp").style.color="red";
+                    document.getElementById("espStatus").style.color="red";
+                    document.getElementById("espStatus").innerText="DOWN";
+                    disBtns();
+            }else if(a=="up"){
+                document.getElementById("dotesp").style.color="green";
+                document.getElementById("espStatus").style.color="green";
+                document.getElementById("espStatus").innerText="UP";
+                enBtns();
+            }else{
+                //repeat a=="down" code
+            }
+*/
+        }
 
         function disBtns(){
             cleanDown=false;//for some reason it works here... well, whatever
@@ -92,6 +171,10 @@
             });
         }
 
+// /\   page functions
+
+// \/   esp functions
+        
         async function startCleaning() {
             cleanDown=true;
             try {
@@ -106,6 +189,7 @@
             }
         }
         
+        //work on this, not working
         async function stopCleaning() {
             try {
                 await fetch(`${API}/clean/stop`, {
@@ -118,6 +202,10 @@
             }
         }
         
+// /\   esp functions
+
+
+// \/   im... not sure what this does, ill leave it uncommented for now
         document.addEventListener("DOMContentLoaded", () => {
         
             document.getElementById("autoMode").addEventListener("change", async function () {
@@ -140,6 +228,9 @@
             setInterval(getInfo, 4000);
             disBtns();
         });
+// /\   ...
+
+
 	</script>
 </head>
 <body>
@@ -151,14 +242,20 @@
         
         <div class="section">
         
-            <div hidden id="stats" style="background-color: red;" class="card">
-                <center><h1 id="status"><center>not connected... qwq</center></h1></center>
-            </div>
-    
             <div id="dashboard" class="card">
                 <h2>Dashboard</h2>
         
                 <div class="stats">
+                    <div class="stat-box">
+                        <span id="dotdb" style="color: red;">●</span>
+                        <h3>Database</h3>
+                        <p id="dbStatus" style="color: red;">-</p>
+                    </div>
+                    <div class="stat-box">
+                        <span id="dotesp" style="color: red;">●</span>
+                        <h3>ESP32</h3>
+                        <p id="espStatus" style="color: red;">-</p>
+                    </div>
                     <div class="stat-box">
                         <h3>Panels Cleaned</h3>
                         <p id="panelsCleaned">0</p>
@@ -168,6 +265,7 @@
                         <h3>Water Usage</h3>
                         <p id="waterUsage">0</p>
                     </div>
+
                 </div>
 
                 <div class="sensors">

@@ -10,7 +10,9 @@ const PORT = 3000;
 const app = express(); 
 
 let database=false;//false=local database, true=actual database
-
+let dbta = false;
+let dbj;
+        
 let connected = false;
 const esp = {
   lastSeen:0,       //last seen
@@ -30,25 +32,83 @@ const esp = {
 process.argv.forEach(function (val, index, array) {
   if (array.length>2){
     if(array[2]=="db"){
-      //start w local database
       database=false;
     }else{
       database=true;
     }
   }else{
     console.log("no argument provided, starting with normal database");
+    database=true;
   }
 
 });
 
 //for security reasons, the database info will be taken outta there
 if(database){
-  const dbj = JSON.parse(
+  dbj = JSON.parse(
     fs.readFileSync('../db.json', 'utf8')
 );
 }
 
+
 let db;
+
+async function localDatabase(){
+    try{
+        console.log("connecting to localDatabase")
+        db = await mysql.createConnection({
+            host: "localhost",
+            user: "root",
+            database:"testDatabase",
+            port: 3306,
+            password:""
+    });    
+    }catch(err){
+        if(err.errno==1049){
+            console.log("database was not found, creating a new");
+            createDatabase();
+        }
+    }
+}
+
+async function createDatabase(){
+    console.log("creating database in 5 seconds, press Ctrl + C to cancel")
+        setTimeout(async function(){
+                let tempdb = await mysql.createConnection({
+                    host: "localhost",
+                    user: "root",
+                    password:""
+                }); 
+
+                try {
+                    let wholeNewDatabaseQuery=fs.readFileSync('databaseTemplate.txt', 'utf8')
+                    
+                     const cleanedSql = wholeNewDatabaseQuery
+                        .split(/\r?\n/)
+                        .filter(line => !line.trim().startsWith('--'))
+                        .join('\n');
+
+                     const statements = cleanedSql
+                        .split(';')
+                        .map(statement => statement.trim())
+                        .filter(statement => statement.length > 0);
+
+                     for (const statement of statements) {
+                        await tempdb.query(statement);
+                    }
+                    
+                    //await tempdb.query(wholeNewDatabaseQuery);
+                    console.log('Database created OwO');
+                    console.log("runnin now :3")
+                }catch(err){
+                    console.log(err);
+                } finally {
+                  await tempdb.end(); // Closes the connection
+                }
+            },5000);
+}
+
+
 async function startDB(){
   if(database){
     db = await mysql.createConnection({
@@ -70,9 +130,6 @@ async function startDB(){
     });
   }
 }
-
-//let log="";
-let powerAverage=[];
 
 app.use(cors({
   origin: "http://localhost:"+PORT,

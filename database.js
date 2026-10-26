@@ -93,7 +93,7 @@ async function createDatabase(){
                   await tempdb.end(); // Closes the connection
                 }
             },5000);
-    }
+}
 
 
 async function startDB(){
