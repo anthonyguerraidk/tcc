@@ -12,17 +12,39 @@
         //so there is immediate feedback to the user, 
         //bc theres a delay before the esp answers
         let cleanDown=false;
-
+        let dbUp=false;
+        let espUp=false;
+        let panic=false;
         async function getInfo() {
             try{
                 const response = await fetch(`${API}/data`);
                 const data = await response.json();
-                let esp=data.esp;
+                console.log(data)
+
+
+// \/           database page management
                 
-                if(!data.connected){
-                    genESP32("down");
-                    return;
+                const dbta=data.dbta;
+                if(!dbta.connected){
+                    console.log("database not connected!")
+                    genDB("down");
+                }else{
+                    genDB("up",dbta.type);
                 }
+
+// /\
+// \/           esp page management
+
+                const esp=data.esp;
+                if(!esp.connected){
+                    console.log("esp not connected!")
+                    genESP32("down");
+                }else{
+                    genESP32("up");
+                }
+
+// /\
+// \/
 
                 if(esp.status=="nowCleaning"||cleanDown){
                     disBtns();
@@ -32,28 +54,22 @@
                     disBtns();
                     console.log(`Invalid state...?\n${esp.satus}`)
                 }
-
-                genESP32("up");
-
-                document.getElementById("panelsCleaned").innerText = esp.panelsCleaned;
-                document.getElementById("waterUsage").innerText = `${esp.waterUsage}L`;
-                document.getElementById("voltageInput").innerText = `${esp.power}V`;
-                document.getElementById("dustLevel").innerText = esp.dustLevel;
-                document.getElementById("waterTank").innerText = `${esp.waterTank}%`;
-        
-                const pump = document.getElementById("pumpStatus");
-                pump.innerText = esp.pumpStatus ? "Active" : "Stopped";
-                pump.style.color = esp.pumpStatus ? "green" : "red";
-                document.getElementById("autoMode").checked = esp.autoMode;
-                console.log(`currently: ${esp.command}`)
                 
+                updateValues(esp);
+
             }catch (err) {
-                    console.log("backEnd is not runnin? mayb connection problm?")
+                    console.log("critial error QwQ")
+                    
                     genESP32("down");
+                    genDB("down");
+                    panic=true;
                     disBtns();
                 console.error(err);
             }
         }
+
+// /\
+
         getInfo();
 
 
@@ -74,7 +90,9 @@
             document.getElementById(page).removeAttribute("hidden");
         }
 
-        function genDB(a){
+
+//      i can merge these two functions btw
+        function genDB(a,b){ 
 //          switch version:
 
             switch (a) {
@@ -82,14 +100,16 @@
                     document.getElementById("dotdb").style.color="green";
                     document.getElementById("dbStatus").style.color="green";
                     document.getElementById("dbStatus").innerText="UP";   
+                    document.getElementById("dbtype").innerText=`Database (${b})`;
+                    dbUp=true;
                     enBtns(); 
                 break;
                 case "down":
-                    console.log("esp disconnected... :p");
                 default:
                     document.getElementById("dotdb").style.color="red";
                     document.getElementById("dbStatus").style.color="red";
                     document.getElementById("dbStatus").innerText="DOWN";
+                    dbUp=false;
                     disBtns();
                 break;
             }
@@ -121,15 +141,16 @@
                 case "up":
                     document.getElementById("dotesp").style.color="green";
                     document.getElementById("espStatus").style.color="green";
-                    document.getElementById("espStatus").innerText="UP";   
+                    document.getElementById("espStatus").innerText="UP";
+                    espUp=true;
                     enBtns(); 
                 break;
                 case "down":
-                    console.log("esp disconnected... :p");
                 default:
                     document.getElementById("dotesp").style.color="red";
                     document.getElementById("espStatus").style.color="red";
                     document.getElementById("espStatus").innerText="DOWN";
+                    espUp=false;
                     disBtns();
                 break;
             }
@@ -152,6 +173,23 @@
                 //repeat a=="down" code
             }
 */
+        }
+
+        //as of now this function can only be called from inside the getInfo() function bc 'esp' is private... not necessary to open it up rn i guess
+        function updateValues(esp){
+
+                document.getElementById("panelsCleaned").innerText = esp.panelsCleaned;
+                document.getElementById("waterUsage").innerText = `${esp.waterUsage}L`;
+                document.getElementById("voltageInput").innerText = `${esp.power}V`;
+                document.getElementById("dustLevel").innerText = esp.dustLevel;
+                document.getElementById("waterTank").innerText = `${esp.waterTank}%`;
+        
+                const pump = document.getElementById("pumpStatus");
+                pump.innerText = esp.pumpStatus ? "Active" : "Stopped";
+                pump.style.color = esp.pumpStatus ? "green" : "red";
+                document.getElementById("autoMode").checked = esp.autoMode;
+                console.log(`currently: ${esp.command}`)
+
         }
 
         function disBtns(){
@@ -205,7 +243,7 @@
 // /\   esp functions
 
 
-// \/   im... not sure what this does, ill leave it uncommented for now
+// \/   im... not sure what this does, ill leave it uncommented for now... apparently its related to the most important part of the project, the automation part...
         document.addEventListener("DOMContentLoaded", () => {
         
             document.getElementById("autoMode").addEventListener("change", async function () {
@@ -224,8 +262,10 @@
         
             getInfo();
         
-            // Refresh every 4 seconds
-            setInterval(getInfo, 4000);
+            // Refresh every 4 seconds, if alls fine
+            if(!panic){
+                setInterval(getInfo, 4000);    
+            }
             disBtns();
         });
 // /\   ...
@@ -248,7 +288,7 @@
                 <div class="stats">
                     <div class="stat-box">
                         <span id="dotdb" style="color: red;">●</span>
-                        <h3>Database</h3>
+                        <h3 id="dbtype">Database</h3>
                         <p id="dbStatus" style="color: red;">-</p>
                     </div>
                     <div class="stat-box">

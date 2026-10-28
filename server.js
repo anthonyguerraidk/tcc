@@ -9,12 +9,17 @@ const __dirname = path.dirname(__filename);
 const PORT = 3000;
 const app = express(); 
 
-let database=false;//false=local database, true=actual database
-let dbta = false;
+let WhichDatabase=false;//false=local database, true=actual database
+let dbta = {
+  type:"none",
+  connected:false, //connected or not
+
+}
 let dbj;
-        
+
 let connected = false;
 const esp = {
+  connected:false,
   lastSeen:0,       //last seen
   power:0,          //in volts, current voltage
   panelsCleaned:0,  //times cleaning has been triggered/pannels cleaned
@@ -32,19 +37,19 @@ const esp = {
 process.argv.forEach(function (val, index, array) {
   if (array.length>2){
     if(array[2]=="db"){
-      database=false;
+      WhichDatabase=false;
     }else{
-      database=true;
+      WhichDatabase=true;
     }
   }else{
+    WhichDatabase=true;
     console.log("no argument provided, starting with normal database");
-    database=true;
   }
 
 });
 
 //for security reasons, the database info will be taken outta there
-if(database){
+if(WhichDatabase){
   dbj = JSON.parse(
     fs.readFileSync('../db.json', 'utf8')
 );
@@ -52,24 +57,6 @@ if(database){
 
 
 let db;
-
-async function localDatabase(){
-    try{
-        console.log("connecting to localDatabase")
-        db = await mysql.createConnection({
-            host: "localhost",
-            user: "root",
-            database:"testDatabase",
-            port: 3306,
-            password:""
-    });    
-    }catch(err){
-        if(err.errno==1049){
-            console.log("database was not found, creating a new");
-            createDatabase();
-        }
-    }
-}
 
 async function createDatabase(){
     console.log("creating database in 5 seconds, press Ctrl + C to cancel")
@@ -108,27 +95,63 @@ async function createDatabase(){
             },5000);
 }
 
+async function localDatabase(){
+    try{
+        console.log("connecting to localDatabase")
+        db = await mysql.createConnection({
+            host: "localhost",
+            user: "root",
+            database:"testDatabase",
+            port: 3306,
+            password:""
+    });
+    }catch(err){
+        if(err.errno==1049){
+            console.log("database was not found, creating a new");
+            createDatabase();
+        }
+        return;
+    }
+    console.log("Connected to local database!");
+      dbta.connected=true;
+      dbta.type="local";
+}
 
 async function startDB(){
-  if(database){
-    db = await mysql.createConnection({
-        host: dbj.host,
-        user: dbj.user,
-        password: dbj.pass,
-        database: dbj.db,
-        port: 3306
-    });
-    console.log("Connected to database!");
-    dbta.status=true;
+try{
+  if(WhichDatabase){
+    console.log("attempting connection to normal database")
+    try{
+      db = await mysql.createConnection({
+          host: dbj.host,
+          user: dbj.user,
+          password: dbj.pass,
+          database: dbj.db,
+          port: 3306
+      });
+    }catch(err){
+      console.log("connection to local databse failed")
+      console.log(err);
+      return;
+    }
+      console.log("Connected to normal database!");
+      dbta.connected=true;
+      dbta.type="normal";
   }else{
-    db = await mysql.createConnection({
-        host: "localhost",
-        user: "root",
-        database:"testDatabase",
-        port: 3306,
-        password:""
-    });
+    console.log("attempting connection to normal database")
+    try{
+      await localDatabase();
+    }catch(err){
+      console.log("connection to local databse failed")
+      console.log(err);
+    }
   }
+
+}catch(err){
+  console.log("CRITCAL ERROR, some problem connecting to database(s)")
+  console.log(err)
+  process.exit;
+}
 }
 
 app.use(cors({
@@ -163,7 +186,7 @@ app.post('/update',(req,res)=>{
 
 //heartbeat... basically constant communication between esp and server
 app.post('/heartbeat',(req,res)=>{
-    connected = true;
+    esp.connected = true;
     esp.lastSeen = Date.now();
     
     //process data from esp
@@ -198,7 +221,6 @@ app.post('/heartbeat',(req,res)=>{
       
 //i forgor how to use lists lollllll, heres the functions:
 //push(), pop(), shift(), unshift(), map(), filter(), forEach(), reduce(), sort(), and slice().
-    powerAverage.push(power);
     
     //BEHOLD!! DEBUGG!!
 
@@ -209,13 +231,7 @@ app.post('/heartbeat',(req,res)=>{
 
 //get data
 app.get('/data', (req, res) => {
-    if(connected==false){
-      //thisll flood your terminal in no time, keep commented... or not, whatever
-      //console.log("eps32 is not connected");
-      res.json({connected});
-    }else{
-    res.json({connected, esp});
-}
+    res.json({esp,dbta});
 });
 
 function average(){
@@ -238,10 +254,10 @@ function report(){
 setInterval(() => {
     //console.log(report())//console report
     if(esp.status=="nowCleaning"){
-      connected = true;
+      esp.connected = true;
       esp.lastSeen = Date.now();
     }else if(Date.now() - esp.lastSeen > 6000) {
-      connected = false;
+      esp.connected = false;
       esp.command="idle";
     }
 }, 1000);
@@ -251,8 +267,10 @@ setInterval(function(){
 },10000);
 
 //run servah :3
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-    console.log(`:3`);
-  
+// replace your current app.listen block with:
+startDB().then(() => {
+    app.listen(PORT, () => {
+        console.log(`Server running on http://localhost:${PORT}`);
+        console.log(`:3`);
+    });
 });
