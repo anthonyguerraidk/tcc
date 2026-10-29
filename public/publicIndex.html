@@ -15,11 +15,12 @@
         let dbUp=false;
         let espUp=false;
         let panic=false;
+
         async function getInfo() {
             try{
                 const response = await fetch(`${API}/data`);
                 const data = await response.json();
-                console.log(data)
+                //console.log(data)
 
 
 // \/           database page management
@@ -45,18 +46,17 @@
 
 // /\
 // \/
-
-                if(esp.status=="nowCleaning"||cleanDown){
-                    disBtns();
-                }else if(esp.status=="idle"||esp.status=="doneCleaning"){
-                    enBtns();
-                }else{
-                    disBtns();
-                    console.log(`Invalid state...?\n${esp.satus}`)
+                if(esp.connected){
+                    if(esp.status=="nowCleaning"||cleanDown){
+                        disBtns();
+                    }else if(esp.status=="idle"||esp.status=="doneCleaning"){
+                        enBtns();
+                    }else{
+                        disBtns();
+                        console.log(`Invalid state...?\n${esp.satus}`)
+                    }    
+                    updateValues(esp);
                 }
-                
-                updateValues(esp);
-
             }catch (err) {
                     console.log("critial error QwQ")
                     
@@ -71,6 +71,25 @@
 // /\
 
         getInfo();
+
+
+// \/ logs
+
+        async function getLogs(){
+            const response = await fetch(`${API}/logs`);
+            const data = await response.json();
+
+            document.getElementById("logs").innerHTML+=`
+                <div class="log-item">
+                    <div class="log-date">${data.logDate}</div>
+                    <strong>${data.logTrigger}</strong>
+                    <p>${data.logMessage}</p>
+                    <div class="badge">${data.badge}</div>
+                </div>
+            `
+        }
+
+// /\
 
 
 // \/   page functions
@@ -102,7 +121,6 @@
                     document.getElementById("dbStatus").innerText="UP";   
                     document.getElementById("dbtype").innerText=`Database (${b})`;
                     dbUp=true;
-                    enBtns(); 
                 break;
                 case "down":
                 default:
@@ -110,7 +128,6 @@
                     document.getElementById("dbStatus").style.color="red";
                     document.getElementById("dbStatus").innerText="DOWN";
                     dbUp=false;
-                    disBtns();
                 break;
             }
 
@@ -188,7 +205,7 @@
                 pump.innerText = esp.pumpStatus ? "Active" : "Stopped";
                 pump.style.color = esp.pumpStatus ? "green" : "red";
                 document.getElementById("autoMode").checked = esp.autoMode;
-                console.log(`currently: ${esp.command}`)
+                //console.log(`currently: ${esp.command}`)
 
         }
 
@@ -265,6 +282,8 @@
             // Refresh every 4 seconds, if alls fine
             if(!panic){
                 setInterval(getInfo, 4000);    
+            }else{
+                console.log("SOMETHING WRONG!!!")
             }
             disBtns();
         });

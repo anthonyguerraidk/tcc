@@ -58,15 +58,15 @@ if(WhichDatabase){
 
 let db;
 
-async function createDatabase(){
+//fix this to create a database and tables separately so it works fine with noraml and local databse
+async function createTables(){
     console.log("creating database in 5 seconds, press Ctrl + C to cancel")
         setTimeout(async function(){
-                let tempdb = await mysql.createConnection({
-                    host: "localhost",
-                    user: "root",
-                    password:""
-                }); 
-
+                //let tempdb = await mysql.createConnection({
+                //    host: "localhost",
+                //    user: "root",
+                //    password:""
+                //}); 
                 try {
                     let wholeNewDatabaseQuery=fs.readFileSync('databaseTemplate.txt', 'utf8')
                     
@@ -81,7 +81,7 @@ async function createDatabase(){
                         .filter(statement => statement.length > 0);
 
                      for (const statement of statements) {
-                        await tempdb.query(statement);
+                        await db.query(statement);
                     }
                     
                     //await tempdb.query(wholeNewDatabaseQuery);
@@ -89,9 +89,10 @@ async function createDatabase(){
                     console.log("runnin now :3")
                 }catch(err){
                     console.log(err);
-                } finally {
-                  await tempdb.end(); // Closes the connection
                 }
+                // finally {
+                //  await tempdb.end(); // Closes the connection
+                //}
             },5000);
 }
 
@@ -108,7 +109,7 @@ async function localDatabase(){
     }catch(err){
         if(err.errno==1049){
             console.log("database was not found, creating a new");
-            createDatabase();
+            createTables();
         }
         return;
     }
@@ -120,7 +121,7 @@ async function localDatabase(){
 async function startDB(){
 try{
   if(WhichDatabase){
-    console.log("attempting connection to normal database")
+    console.log("\nattempting connection to normal database")
     try{
       db = await mysql.createConnection({
           host: dbj.host,
@@ -138,7 +139,7 @@ try{
       dbta.connected=true;
       dbta.type="normal";
   }else{
-    console.log("attempting connection to normal database")
+    console.log("\nattempting connection to normal database")
     try{
       await localDatabase();
     }catch(err){
@@ -152,6 +153,23 @@ try{
   console.log(err)
   process.exit;
 }
+
+try{
+  let query = await db.query("show tables")
+  query=query[0];
+  if(query==undefined||query==null||query==0){
+    console.log("\nno tables found in the database,")
+    createTables();
+  }else if(query.length!=5){
+    console.log("some tables are missing, fixing database")
+    restoreDatabase();
+  }else{
+    console.log("Database verified, all fine")
+  }
+}catch(err){
+  console.log(err);
+}
+
 }
 
 app.use(cors({
@@ -234,6 +252,12 @@ app.get('/data', (req, res) => {
     res.json({esp,dbta});
 });
 
+app.get('/logs', (req, res) => {
+    let logData=db.query("select * in logs");
+
+    res.json(logData);
+});
+
 function average(){
   let x;
   for(i=0;i=powerAverage.length;i++){
@@ -270,7 +294,7 @@ setInterval(function(){
 // replace your current app.listen block with:
 startDB().then(() => {
     app.listen(PORT, () => {
-        console.log(`Server running on http://localhost:${PORT}`);
-        console.log(`:3`);
+        console.log(`\nServer running on http://localhost:${PORT}`);
+        console.log(`\n:3\n`);
     });
 });
