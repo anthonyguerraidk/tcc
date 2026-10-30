@@ -16,6 +16,17 @@
         let espUp=false;
         let panic=false;
 
+    async function invoke() {
+                const response = await fetch(`${API}/powerData`);
+                const data = await response.json();
+                if(data.status==404){
+                    console.log("data unavailable");
+                    return;
+                }
+                console.log(data);
+                
+        }
+
         async function getInfo() {
             try{
                 const response = await fetch(`${API}/data`);
@@ -70,12 +81,10 @@
 
 // /\
 
-        getInfo();
-
-
 // \/ logs
 
         async function getLogs(){
+            document.getElementById("logs").innerHTML="";
             const response = await fetch(`${API}/logs`);
             const data = await response.json().then(data => data=data[0]);
             data.forEach(data=>{
@@ -399,10 +408,9 @@
                 </div>
 
             </div>
-        
+        <button class="btn-primary" onclick="invoke()"> test</button>
             <div hidden id="logs" class="card">
                 <h2>Cleaning Log</h2>
-                <button class="btn-primary" onclick="getLogs()"> test</button>
         
                 <div class="log-item">
                     <div class="log-date">May 28, 2026 - 09:40</div>
@@ -431,4 +439,9 @@
 
     </div>
 </body>
+<script defer>
+    getInfo();
+    getLogs();
+    console.log("retrieved info and logs")
+</script>
 </html>

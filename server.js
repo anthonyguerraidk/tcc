@@ -9,7 +9,7 @@ const __dirname = path.dirname(__filename);
 const PORT = 3000;
 const app = express(); 
 
-let WhichDatabase=false;//false=local database, true=actual database
+let WhichDatabase=false;//false=local database, true=actual database (idk what to call it)
 let dbta = {
   type:"none",
   connected:false, //connected or not
@@ -20,7 +20,7 @@ let dbj;
 let connected = false;
 const esp = {
   connected:false,
-  lastSeen:0,       //last seen
+  lastSeen:0,       //last seen...
   power:0,          //in volts, current voltage
   panelsCleaned:0,  //times cleaning has been triggered/pannels cleaned
   waterUsage:0,     //water usage, as of now unused
@@ -33,7 +33,6 @@ const esp = {
 }
 
 
-//process the arguments, supposedly the password goes there
 process.argv.forEach(function (val, index, array) {
   if (array.length>2){
     if(array[2]=="db"){
@@ -130,7 +129,7 @@ try{
           port: 3306
       });
     }catch(err){
-      console.log("connection to local databse failed")
+      console.log("connection to normal databse failed")
       console.log(err);
       return;
     }
@@ -172,10 +171,28 @@ try{
 
 
 //needa make a function to push the logging data up to the database
-//needa make a function to push this data up to the database
-//retrieve all power data from the last hour, make an average and trigger auto cleaning
-async function retrievePowerData(){
-  await db.query("select power from sensorReadings where recordedAt >= now() - interval 1 hour and recordedAt <= now()");
+
+async function retrievePowerData(){                               // this commented part here is for when is finally working, it will get the data from the last hour, since its not done and running yet, its not gonna work properly
+  let data = await db.query("select power from sensorReadings") //where recordedAt >= now() - interval 1 hour and recordedAt <= now()"); 
+  data=data[0]
+  if(data.length == 0||data.length==null||data.length==undefined){
+    return false;
+  }
+  return data;
+}
+
+async function updateSensorsData(){
+  await db.query(`
+    INSERT INTO sensorReadings (
+        power,
+        dustLevel,
+        waterTank,
+        waterUsage,
+        pumpRunning,
+        espStatus,
+        commandAck,
+    VALUES (${esp.power}, ${esp.dustLevel}, ${esp.waterTank}, ${esp.waterUsage}, ${esp.pumpRunning}, ${esp.status}, ${esp.ack}),
+`)
 }
 
 app.use(cors({
@@ -194,26 +211,20 @@ app.post('/clean/start',(req,res)=>{
     //wait for heartbeat so esp sees the command
 })
 
-//this gotta update very x y, i was thinking every minute, but too much innit?, every hour?
-//the average count must run every minute, but its too much... useless data
-app.post('/update',(req,res)=>{
-  //average();
-  //database connection here, upload data
+app.get('/powerData', async (req,res)=>{
+  let data = await retrievePowerData();
+  if(data==false){
+    res.status(404).json({
+      error:"no data available"
+    })
+  }else{
+    res.json(data);
+  }
 })
 
-//maybe ill work on this later?
-//app.post('/clean/stop',(req,res)=>{
-//  esp.command="stop";
-//})
-
-//database code too, update and stuff, requires a login system
-
-//heartbeat... basically constant communication between esp and server
 app.post('/heartbeat',(req,res)=>{
     esp.connected = true;
     esp.lastSeen = Date.now();
-    
-    //process data from esp
     const {
       power, 
       dustLevel,
@@ -224,14 +235,13 @@ app.post('/heartbeat',(req,res)=>{
       pumpRunning
     } = req.body;
 
-    //set values
     esp.power=power;
     esp.dustLevel=dustLevel;
     esp.waterTank=waterTank;
     esp.pumpRunning=pumpRunning;
     esp.status=status;
     esp.ack=ack;
-    //send command back to esp
+
     if(status=="nowCleaning"){
       esp.lastSeen = Date.now();
       console.log("cleaning");
@@ -242,18 +252,9 @@ app.post('/heartbeat',(req,res)=>{
     }else{
       res.json({ command: esp.command});
     }
-      
-//i forgor how to use lists lollllll, heres the functions:
-//push(), pop(), shift(), unshift(), map(), filter(), forEach(), reduce(), sort(), and slice().
-    
-    //BEHOLD!! DEBUGG!!
-
-    //console.log(esp);
-
-    //
+    updateSensorsData();
 })
 
-//get data
 app.get('/data', (req, res) => {
     res.json({esp,dbta});
 });
@@ -273,9 +274,6 @@ function average(){
   return x;
 }
 
-//update database function
-
-//loop to check if the esp is still connected, timeout postponed if cleaning
 setInterval(() => {
     if(esp.status=="nowCleaning"){
       esp.connected = true;
@@ -290,8 +288,6 @@ setInterval(function(){
 
 },10000);
 
-//run servah :3
-// replace your current app.listen block with:
 startDB().then(() => {
     app.listen(PORT, () => {
         console.log(`\nServer running on http://localhost:${PORT}`);
