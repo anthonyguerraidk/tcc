@@ -45,7 +45,6 @@ process.argv.forEach(function (val, index, array) {
     WhichDatabase=true;
     console.log("no argument provided, starting with normal database");
   }
-
 });
 
 //for security reasons, the database info will be taken outta there
@@ -169,7 +168,14 @@ try{
 }catch(err){
   console.log(err);
 }
+}
 
+
+//needa make a function to push the logging data up to the database
+//needa make a function to push this data up to the database
+//retrieve all power data from the last hour, make an average and trigger auto cleaning
+async function retrievePowerData(){
+  await db.query("select power from sensorReadings where recordedAt >= now() - interval 1 hour and recordedAt <= now()");
 }
 
 app.use(cors({
@@ -252,9 +258,8 @@ app.get('/data', (req, res) => {
     res.json({esp,dbta});
 });
 
-app.get('/logs', (req, res) => {
-    let logData=db.query("select * in logs");
-
+app.get('/logs', async (req, res) => {
+    let logData=await db.query("select * from maintenanceLogs");
     res.json(logData);
 });
 
@@ -268,15 +273,10 @@ function average(){
   return x;
 }
 
-function report(){
-  return esp;
-}
-
 //update database function
 
 //loop to check if the esp is still connected, timeout postponed if cleaning
 setInterval(() => {
-    //console.log(report())//console report
     if(esp.status=="nowCleaning"){
       esp.connected = true;
       esp.lastSeen = Date.now();

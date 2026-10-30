@@ -77,16 +77,27 @@
 
         async function getLogs(){
             const response = await fetch(`${API}/logs`);
-            const data = await response.json();
-
+            const data = await response.json().then(data => data=data[0]);
+            data.forEach(data=>{
+            let time=new Date(data.createdAt);
+            time = time.toLocaleString('en-US', {
+                month: 'short',
+                day: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false
+            });
             document.getElementById("logs").innerHTML+=`
                 <div class="log-item">
-                    <div class="log-date">${data.logDate}</div>
-                    <strong>${data.logTrigger}</strong>
-                    <p>${data.logMessage}</p>
-                    <div class="badge">${data.badge}</div>
+                    <div class="log-date">${time}</div>
+                    <strong>${data.eventType}</strong>
+                    <p>${data.description}</p>
+                    <div class="badge">${data.severity}</div>
                 </div>
-            `
+            `      
+            })
         }
 
 // /\
@@ -391,6 +402,7 @@
         
             <div hidden id="logs" class="card">
                 <h2>Cleaning Log</h2>
+                <button class="btn-primary" onclick="getLogs()"> test</button>
         
                 <div class="log-item">
                     <div class="log-date">May 28, 2026 - 09:40</div>
