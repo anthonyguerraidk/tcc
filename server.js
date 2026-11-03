@@ -172,13 +172,34 @@ try{
 
 //needa make a function to push the logging data up to the database
 
-async function retrievePowerData(){                               // this commented part here is for when is finally working, it will get the data from the last hour, since its not done and running yet, its not gonna work properly
-  let data = await db.query("select power from sensorReadings") //where recordedAt >= now() - interval 1 hour and recordedAt <= now()"); 
+async function autoClean(){
+  average=retrievePowerData();
+  if(average==false){
+    console.log("no sensor data available");
+    return;
+  }
+}
+
+async function retrievePowerData(a=null){// this commented part here \/ is for when is finally working, it will get the data from the last hour, since its not done and running yet, its not gonna work properly
+  let averagePower=0;
+  let data = await db.query("select power from sensorReadings where recordedAt >= now() - interval 1 hour and recordedAt <= now() order by recordedAt desc limit 100"); 
   data=data[0]
+
   if(data.length == 0||data.length==null||data.length==undefined){
     return false;
+    //return false;
+  }else{
+    for(let i=0;i<data.length;i++){
+      averagePower=averagePower+Number(data[i].power);
+    }
+    averagePower=(averagePower/data.length).toFixed(2);
   }
-  return data;
+
+  if(a=="a"||a=="A"||a=="average"||a=="Average"||a==1||a=="1"){
+    return averagePower;
+  }else if(a==""||a==null||a==undefined||a==0||a=="0"){
+    return data;
+  }    
 }
 
 async function updateSensorsData(){
@@ -190,8 +211,9 @@ async function updateSensorsData(){
         waterUsage,
         pumpRunning,
         espStatus,
-        commandAck,
-    VALUES (${esp.power}, ${esp.dustLevel}, ${esp.waterTank}, ${esp.waterUsage}, ${esp.pumpRunning}, ${esp.status}, ${esp.ack}),
+        commandAck
+    )
+    VALUES (${esp.power}, ${esp.dustLevel}, ${esp.waterTank}, ${esp.waterUsage}, ${esp.pumpRunning}, '${esp.status}', '${esp.ack}')
 `)
 }
 
@@ -211,16 +233,18 @@ app.post('/clean/start',(req,res)=>{
     //wait for heartbeat so esp sees the command
 })
 
+
 app.get('/powerData', async (req,res)=>{
-  let data = await retrievePowerData();
-  if(data==false){
+  let data = await retrievePowerData("a");
+  if(!data){
     res.status(404).json({
       error:"no data available"
     })
   }else{
-    res.json(data);
+    res.json({data});
   }
 })
+
 
 app.post('/heartbeat',(req,res)=>{
     esp.connected = true;

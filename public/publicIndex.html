@@ -14,6 +14,8 @@
         let cleanDown=false;
         let dbUp=false;
         let espUp=false;
+        let dataAvailable=false;
+        let autoClean=false;
         let panic=false;
 
     async function invoke() {
@@ -282,26 +284,23 @@
 
 // \/   im... not sure what this does, ill leave it uncommented for now... apparently its related to the most important part of the project, the automation part...
         document.addEventListener("DOMContentLoaded", () => {
-        
             document.getElementById("autoMode").addEventListener("change", async function () {
-        
                 await fetch(`${API}/auto`, {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        enabled: this.checked
-                    })
+                    method: "POST"
                 });
-        
+                autoClean=!autoClean;
+                if(autoClean){
+                    document.getElementById("autoMode").setAttribute("checked", "");
+                }else{
+                    document.getElementById("autoMode").removeAttribute("checked");
+                }
             });
-        
+            
             getInfo();
-        
+            
             // Refresh every 4 seconds, if alls fine
             if(!panic){
-                setInterval(getInfo, 4000);    
+                setInterval(getInfo, 4000);
             }else{
                 console.log("SOMETHING WRONG!!!")
             }
@@ -392,22 +391,32 @@
                 <br>
 
                 <div class="card">
-                    <div class="toggle">
-                        <div>
-                            <h2>Automatic Activation</h2>
-                            <p style="font-size:14px;color:#666;">
-                                Activate cleaning based on sensors
-                            </p>
+                    <h2>Automatic Activation</h2>
+                
+                    <div class="stat-box">
+                        <div class="auto-header">
+                            <span id="dotesp" class="status-dot">●</span>
+                            <h3>Data</h3>
                         </div>
-            
-                        <label class="switch">
-                            <input type="checkbox" id="autoMode" checked>
-                            <span class="slider"></span>
-                        </label>
+                
+                        <p id="espStatus">Inactive</p>
+                
+                        <div class="auto-control">
+                            <div class="auto-info">
+                                <strong>Automatic cleaning</strong>
+                                <small>Activate cleaning based on sensors</small>
+                            </div>
+                
+                            <label class="modern-switch">
+                                <input type="checkbox" id="autoMode">
+                                <span class="modern-slider"></span>
+                            </label>
+                        </div>
                     </div>
-                </div>
+                </div>                
 
             </div>
+
         <button class="btn-primary" onclick="invoke()"> test</button>
             <div hidden id="logs" class="card">
                 <h2>Cleaning Log</h2>

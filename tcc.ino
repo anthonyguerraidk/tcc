@@ -60,9 +60,9 @@ void heartbeat(){
     
     String json =
         "{"
-        "\"dustLevel\":\"placeholder\","
-        "\"waterTank\":\"placeholder\","
-        "\"pumpRunning\":\"placeholder\","
+        "\"dustLevel\":\"0\","
+        "\"waterTank\":\"0\","
+        "\"pumpRunning\":\"false\","
         "\"status\":\"" + String(state) + "\","
         "\"ack\":\"" + String(ack) + "\","
         //"\"command\":\"" + String(command) + "\","
