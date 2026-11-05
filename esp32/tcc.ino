@@ -9,7 +9,7 @@ const char* password = "password";
 
 
 const int VOLTAGE_PIN = 33;
-const int VALVE_PIN= 35;
+const int VALVE_PIN = 27;
 const float DIVIDER_RATIO = 5.54;
 
 float power = 0;
@@ -103,10 +103,10 @@ void clean(){
   heartbeat();
   
   digitalWrite(VALVE_PIN, HIGH);
-  Serial.println("high");
+  //Serial.println("high");
   delay(15000);
   digitalWrite(VALVE_PIN, LOW);
-  Serial.println("low");
+  //Serial.println("low");
   
   Serial.println("done!");
   state="doneCleaning";

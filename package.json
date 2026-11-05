@@ -13,6 +13,7 @@
     "content-disposition": "^1.1.0",
     "call-bound": "^1.0.4",
     "content-type": "^1.0.5",
+     "dotenv": "^16.4.7",
     "cookie": "^0.7.2",
     "cookie-signature": "^1.2.2",
     "cors": "^2.8.6",
