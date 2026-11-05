@@ -10,14 +10,16 @@ const PORT = 3000;
 const app = express(); 
 
 let WhichDatabase=false;//false=local database, true=actual database (idk what to call it)
-let dbta = {
-  type:"none",
-  connected:false, //connected or not
-
-}
 let dbj;
-
+let db;
 let connected = false;
+
+const settings = {
+  autoClean:false,
+  autoCleanTime:60000,
+  autoCleanTrigger:40
+}
+
 const esp = {
   connected:false,
   lastSeen:0,       //last seen...
@@ -26,12 +28,14 @@ const esp = {
   waterUsage:0,     //water usage, as of now unused
   dustLevel:0,      //dirt level, calculated from voltage input
   waterTank:0,      //water remaining for usage, probably to be removed
-  pumpRunning:false,//pump boolean
   command:"idle",   //last command sent
   ack:"...",        //command feedback
   status:"idle"     //current command running
 }
-
+const dbta = {
+  type:"none",
+  connected:false, //connected or not
+}
 
 process.argv.forEach(function (val, index, array) {
   if (array.length>2){
@@ -53,8 +57,9 @@ if(WhichDatabase){
 );
 }
 
-
-let db;
+function mapa(value, inMin, inMax, outMin, outMax) {
+    return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
+}
 
 //fix this to create a database and tables separately so it works fine with noraml and local databse
 async function createTables(){
@@ -172,13 +177,13 @@ try{
 
 //needa make a function to push the logging data up to the database
 
-async function autoClean(){
-  average=retrievePowerData();
-  if(average==false){
-    console.log("no sensor data available");
-    return;
-  }
-}
+//async function autoClean(){
+//  average=retrievePowerData();
+//  if(average==false){
+//    console.log("no sensor data available");
+//    return;
+//  }
+//}
 
 async function retrievePowerData(a=null){// this commented part here \/ is for when is finally working, it will get the data from the last hour, since its not done and running yet, its not gonna work properly
   let averagePower=0;
@@ -207,14 +212,16 @@ async function updateSensorsData(){
     INSERT INTO sensorReadings (
         power,
         dustLevel,
-        waterTank,
-        waterUsage,
-        pumpRunning,
         espStatus,
         commandAck
     )
-    VALUES (${esp.power}, ${esp.dustLevel}, ${esp.waterTank}, ${esp.waterUsage}, ${esp.pumpRunning}, '${esp.status}', '${esp.ack}')
+    VALUES (${esp.power}, ${esp.dustLevel}, '${esp.status}', '${esp.ack}')
 `)
+}
+
+async function cleanStart(){
+  esp.command="clean";
+  console.log("starting to clean");
 }
 
 app.use(cors({
@@ -226,9 +233,7 @@ app.get('/', (req, res) => {res.sendFile(path.join(__dirname, 'public', 'publicI
 
 //to start or stop cleaning
 app.post('/clean/start',(req,res)=>{
-    esp.command="clean";
-    //esp.status="cleaning"
-    console.log("starting to clean")
+    cleanStart();
     res.json({ command:`sending command: ${esp.command}`});
     //wait for heartbeat so esp sees the command
 })
@@ -245,24 +250,24 @@ app.get('/powerData', async (req,res)=>{
   }
 })
 
+app.post('/settings/update/autoClean',async (req,res)=>{
+  Object.assign(settings,req.body);
+  //update database settings
+  console.log(settings);
+  res.json({msg:"settings updated succesfuly"});
+})
 
 app.post('/heartbeat',(req,res)=>{
     esp.connected = true;
     esp.lastSeen = Date.now();
     const {
       power, 
-      dustLevel,
-      waterTank,
       command,
       status,
       ack,
-      pumpRunning
     } = req.body;
 
     esp.power=power;
-    esp.dustLevel=dustLevel;
-    esp.waterTank=waterTank;
-    esp.pumpRunning=pumpRunning;
     esp.status=status;
     esp.ack=ack;
 
@@ -308,11 +313,33 @@ setInterval(() => {
     }
 }, 1000);
 
+//autoclean
+async function checkAutoclean(){
+  let a = await retrievePowerData();
+  a=a[0].power;
+  esp.dustLevel = (100-mapa(a,0,13,0,100)).toFixed(2);
+  if(a===false){
+    console.log("no sensor data available for autoclean");
+    return;
+  }
+  if(esp.dustLevel>settings.autoCleanTrigger){
+    if(settings.autoClean){
+      cleanStart();
+      console.log("autoclean Triggered");
+    }else {
+      console.log("pannel is dirty, autoClean is off")
+    }  
+  }
+}
+setInterval(checkAutoclean,settings.autoCleanTime);
 setInterval(function(){
-
-},10000);
+  console.log(esp);
+  console.log(dbta);
+  console.log(settings);
+},5000)
 
 startDB().then(() => {
+  checkAutoclean();
     app.listen(PORT, () => {
         console.log(`\nServer running on http://localhost:${PORT}`);
         console.log(`\n:3\n`);
