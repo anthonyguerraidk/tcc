@@ -94,8 +94,15 @@ VALUES
     (3, 'waterTankCapacity', '0',
      'Maximum water tank capacity, configure your actual value'),
 
-    (4, 'dustThreshold', '0',
+    (4, 'autoCleanTrigger', '0',
      'Dust level that triggers a cleaning operation');
+
+    (5, 'autoClean', '0',
+    'Dust level that triggers a cleaning operation');
+     
+    (6, 'autoCleanTime', '0',
+    'Dust level that triggers a cleaning operation');
+
 
 SHOW TABLES;
 

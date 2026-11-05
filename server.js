@@ -207,6 +207,11 @@ async function retrievePowerData(a=null){// this commented part here \/ is for w
   }    
 }
 
+async function updateSettingsData(){
+  await db.query(`
+    insert into 
+  `)
+}
 async function updateSensorsData(){
   await db.query(`
     INSERT INTO sensorReadings (
@@ -315,6 +320,10 @@ setInterval(() => {
 
 //autoclean
 async function checkAutoclean(){
+  if(!esp.connected){
+    console.log("auto clean unavailable, esp disconnected");
+    return;
+  }
   let a = await retrievePowerData();
   a=a[0].power;
   esp.dustLevel = (100-mapa(a,0,13,0,100)).toFixed(2);
