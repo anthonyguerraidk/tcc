@@ -1,3 +1,4 @@
+
         setInterval(getInfo,4000);
         const API = "http://localhost:3000"
         
@@ -95,9 +96,6 @@
             }
             document.getElementById(page).removeAttribute("hidden");
         }
-
-
-//      i could merge these two functions btw
         function genDB(a,b){ 
 
 
@@ -120,7 +118,6 @@
         }
 
         function genESP32(a){
-//          switch version:
 
             switch (a) {
                 case "up":
@@ -223,3 +220,4 @@
                 console.error(err);
             }
         }
+    

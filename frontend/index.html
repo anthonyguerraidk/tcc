@@ -5,7 +5,13 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Solar Cleaning Manager</title>
     <link rel="stylesheet" href="../style/style.css">
-    <script src="../js/js.js"></script>
+    <!--<script type="module" src="../js/main.js"></script>
+    <script type="module" src="../js/api.js"></script>
+    <script type="module" src="../js/functions.js"></script>
+    <script type="module" src="../js/page.js"></script>
+    <script type="module" src="../js/update.js"></script>
+    <script type="module" src="../js/get.js"></script>  -->
+    <script src="../js/backup.js"></script>
 </head>
 <body>
     <div class="app">
@@ -65,7 +71,7 @@
                 </div>
                 
                 <div id="actions">
-                    <button id="clen" class="btn-primary" onclick="startCleaning()">
+                    <button id="clen" class="btn-primary">
                         Start Cleaning
                     </button>
             
@@ -78,7 +84,7 @@
                     </button>-->
             
                     <!--work on this-->
-                    <button id="stop" class="btn-danger" onclick="stopCleaning()">
+                    <button id="stop" class="btn-danger">
                         Stop System
                     </button>
     
@@ -142,9 +148,4 @@
 
     </div>
 </body>
-<script defer>
-    getInfo();
-    getLogs();
-    console.log("retrieved info and logs")
-</script>
 </html>
