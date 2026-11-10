@@ -7,49 +7,34 @@
     <link rel="stylesheet" href="style.css">
 	<script>
         const API = "http://localhost:3000"
-        //const API = "http://192.168.50.1:3000"; //configured according to lan script
-        //this variable tracks whether one of the funcition buttons has been pressed
-        //so there is immediate feedback to the user, 
-        //bc theres a delay before the esp answers
+        //const API = "http://192.168.50.1:3000"; //configured according to lan script in 'hotspot'
+        
+        /*this variable tracks whether one of the funcition buttons has been pressed
+        so there is immediate feedback to the user, 
+        bc theres a delay before the esp answers*/
         let cleanDown=false;
-        let dbUp=false;
-        let espUp=false;
-        let dataAvailable=false;
-        let autoClean=false;
-        let panic=false;
+        let dbUp=false; //manages if database is up
+        let espUp=false; //manages if esp is up
+        let dataAvailable=false; //manages if power data is available for autoClean
+        let autoClean=false; //manages if autoclean is enabled
+        let panic=false; //PANIC!!! RUNNNNN RUNNNNNNNNNNNN, ABORT THE SCRIPTTTT CTRL+C, CTRL+C
+        let pages=["dashboard","logs"] //defines the pages the frontEnd has
 
-    async function invoke() {
-                const response = await fetch(`${API}/powerData`);
-                const data = await response.json();
-                if(data.status==404){
-                    console.log("data unavailable");
-                    return;
-                }
-                console.log(data);
-                
-        }
-
-        async function getInfo() {
+        //retrieves data from backEnd and updates frontEnd//feedback
+        async function getInfo(){
             try{
                 const response = await fetch(`${API}/data`);
-                const data = await response.json();
-                //console.log(data)
-
-
-// \/           database page management
-                
+                const data = await response.json();                
                 const dbta=data.dbta;
+                const esp=data.esp;
+
                 if(!dbta.connected){
                     console.log("database not connected!")
                     genDB("down");
                 }else{
                     genDB("up",dbta.type);
                 }
-
-// /\
-// \/           esp page management
-
-                const esp=data.esp;
+                
                 if(!esp.connected){
                     console.log("esp not connected!")
                     genESP32("down");
@@ -57,8 +42,6 @@
                     genESP32("up");
                 }
 
-// /\
-// \/
                 if(esp.connected){
                     if(esp.status=="nowCleaning"||cleanDown){
                         disBtns();
@@ -81,11 +64,8 @@
             }
         }
 
-// /\
-
-// \/ logs
-
-        async function getLogs(){
+        //retrieves logs from backEnd and adds each to its... uhhh, page
+        async function getLogs(){ 
             document.getElementById("logs").innerHTML="";
             const response = await fetch(`${API}/logs`);
             const data = await response.json().then(data => data=data[0]);
@@ -111,12 +91,8 @@
             })
         }
 
-// /\
-
-
-// \/   page functions
-
-        let pages=["dashboard","logs"]
+        
+        //changes the active page, checking if it exists and all
         function changePage(page){
             let ok=false;
             for(let i=0;i<pages.length;i++){
@@ -130,12 +106,9 @@
             }
             document.getElementById(page).removeAttribute("hidden");
         }
-
-
-//      i can merge these two functions btw
+        //i could merge these two functions btw
+        //manages user feedback//frontEnd related to database
         function genDB(a,b){ 
-//          switch version:
-
             switch (a) {
                 case "up":
                     document.getElementById("dotdb").style.color="green";
@@ -152,30 +125,10 @@
                     dbUp=false;
                 break;
             }
-
-
-/*          if version:
-
-            if(a=="down"){
-                console.log("esp disconnected... :p");
-                    document.getElementById("dotesp").style.color="red";
-                    document.getElementById("espStatus").style.color="red";
-                    document.getElementById("espStatus").innerText="DOWN";
-                    disBtns();
-            }else if(a=="up"){
-                document.getElementById("dotesp").style.color="green";
-                document.getElementById("espStatus").style.color="green";
-                document.getElementById("espStatus").innerText="UP";
-                enBtns();
-            }else{
-                //repeat a=="down" code
-            }
-*/
         }
 
+        //manages user feedback//frontEnd related to database
         function genESP32(a){
-//          switch version:
-
             switch (a) {
                 case "up":
                     document.getElementById("dotesp").style.color="green";
@@ -193,30 +146,11 @@
                     disBtns();
                 break;
             }
-
-
-/*          if version:
-
-            if(a=="down"){
-                console.log("esp disconnected... :p");
-                    document.getElementById("dotesp").style.color="red";
-                    document.getElementById("espStatus").style.color="red";
-                    document.getElementById("espStatus").innerText="DOWN";
-                    disBtns();
-            }else if(a=="up"){
-                document.getElementById("dotesp").style.color="green";
-                document.getElementById("espStatus").style.color="green";
-                document.getElementById("espStatus").innerText="UP";
-                enBtns();
-            }else{
-                //repeat a=="down" code
-            }
-*/
         }
 
-        //as of now this function can only be called from inside the getInfo() function bc 'esp' is private... not necessary to open it up rn i guess
+        /*as of now this function can only be called from inside the getInfo() 
+        function bc 'esp' is private... no need to open it up rn i guess... ...?*/
         function updateValues(esp){
-
                 document.getElementById("panelsCleaned").innerText = esp.panelsCleaned;
                 document.getElementById("waterUsage").innerText = `${esp.waterUsage}L`;
                 document.getElementById("voltageInput").innerText = `${esp.power}V`;
@@ -227,18 +161,18 @@
                 pump.innerText = esp.pumpStatus ? "Active" : "Stopped";
                 pump.style.color = esp.pumpStatus ? "green" : "red";
                 document.getElementById("autoMode").checked = esp.autoMode;
-                //console.log(`currently: ${esp.command}`)
-
         }
 
+        //disables page buttons
         function disBtns(){
-            cleanDown=false;//for some reason it works here... well, whatever
+            cleanDown=false; //for some reason it works here... well, whatever
             document.querySelectorAll("#actions button").forEach(btn => {
                 btn.setAttribute("disabled","");
                 btn.setAttribute("class","dis");
             });
         }
 
+        //disables page buttons
         function enBtns(){
             cleanDown=false;
             document.querySelectorAll("#actions button").forEach(btn => {
@@ -248,10 +182,7 @@
             });
         }
 
-// /\   page functions
-
-// \/   esp functions
-        
+        //sends command to backend to start cleaning
         async function startCleaning() {
             cleanDown=true;
             try {
@@ -266,7 +197,7 @@
             }
         }
         
-        //work on this, not working
+        //uhhh should send to backend to stop cleaning, but not even the route exists...
         async function stopCleaning() {
             try {
                 await fetch(`${API}/clean/stop`, {
@@ -279,10 +210,7 @@
             }
         }
         
-// /\   esp functions
-
-
-// \/   im... not sure what this does, ill leave it uncommented for now... apparently its related to the most important part of the project, the automation part...
+        //this thing here adds a function to the autoClean toggle... so it uhhh... works, ye?
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("autoMode").addEventListener("change", async function () {
                 await fetch(`${API}/auto`, {
@@ -299,16 +227,9 @@
             getInfo();
             
             // Refresh every 4 seconds, if alls fine
-            if(!panic){
-                setInterval(getInfo, 4000);
-            }else{
-                console.log("SOMETHING WRONG!!!")
-            }
+            if(panic){console.log("SOMETHING WRONG!!!")}
             disBtns();
         });
-// /\   ...
-
-
 	</script>
 </head>
 <body>
@@ -416,8 +337,6 @@
                 </div>                
 
             </div>
-
-        <button class="btn-primary" onclick="invoke()"> test</button>
             <div hidden id="logs" class="card">
                 <h2>Cleaning Log</h2>
         

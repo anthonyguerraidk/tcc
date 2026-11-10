@@ -9,40 +9,50 @@ const __dirname = path.dirname(__filename);
 const PORT = 3000;
 const app = express(); 
 
+//define variables
 let WhichDatabase=false;//false=local database, true=actual database (idk what to call it)
-let dbj;
-let db;
-let connected = false;
+let db; //stores database data
+//let connected = false; //check whether... idk actually, think its deprecated
+let debug = false; //dis(en)ables debug
 
-const settings = {
-  autoClean:false,
-  autoCleanTime:60000,
-  autoCleanTrigger:40
+const settings = { //autoClean settings
+  autoClean:false, //autoclean toggle
+  autoCleanTime:60000, //time autoClean is triggered
+  autoCleanTrigger:40 //dirtyness percentage for autoclean to be triggered
 }
 
-const esp = {
-  connected:false,
-  lastSeen:0,       //last seen...
-  power:0,          //in volts, current voltage
+const esp = { //variable that holds esp-related data
+  connected:false, //if esp is connected
+  lastSeen:0,       //last it was seen... (in Date.now())
+  power:0,          //in volts, current voltage output from the solar pannel
   panelsCleaned:0,  //times cleaning has been triggered/pannels cleaned
-  waterUsage:0,     //water usage, as of now unused
-  dustLevel:0,      //dirt level, calculated from voltage input
-  waterTank:0,      //water remaining for usage, probably to be removed
+  waterUsage:0,     //water usage, not used
+  dustLevel:0,      //dirt level, calculated from voltage input and pannel power output reference (12v)
+  waterTank:0,      //water remaining for usage, not used
   command:"idle",   //last command sent
   ack:"...",        //command feedback
   status:"idle"     //current command running
 }
-const dbta = {
-  type:"none",
-  connected:false, //connected or not
+
+const dbta = { //database data
+  type:"none", //which type of database it is
+  connected:false, //if the database is connected or not
 }
 
+
+//process file exec arguments:
 process.argv.forEach(function (val, index, array) {
   if (array.length>2){
-    if(array[2]=="db"){
+    //if first argument after file execution is db, start local database
+    if(array[2].toLowerCase()=="db"){ 
       WhichDatabase=false;
-    }else{
+    }else{ //else, start normal database
       WhichDatabase=true;
+    }
+    //if first or second argument after file executor is debug, else start normal database
+    if(array[2].toLowerCase()=="debug"||array[3].toLowerCase()=="debug"){
+      console.log("debug enabled");
+      debug=true;
     }
   }else{
     WhichDatabase=true;
@@ -50,18 +60,32 @@ process.argv.forEach(function (val, index, array) {
   }
 });
 
-//for security reasons, the database info will be taken outta there
+
+//reads the file containing database info, should be an .env, isn't...
 if(WhichDatabase){
   dbj = JSON.parse(
     fs.readFileSync('../db.json', 'utf8')
 );
 }
 
+//just like cpp's 'map()' function, useful
 function mapa(value, inMin, inMax, outMin, outMax) {
     return (value - inMin) * (outMax - outMin) / (inMax - inMin) + outMin;
 }
 
-//fix this to create a database and tables separately so it works fine with noraml and local databse
+//returns thea verage of the powerAverage, specifically
+function average(){
+  let x;
+  for(i=0;i=powerAverage.length;i++){
+    x+i;
+  }
+  x=(x/powerAverage.length);
+  console.log(x);
+  return x;
+}
+
+
+//manage databases, create/fix tables, start local/normal database, etc
 async function createTables(){
     console.log("creating database in 5 seconds, press Ctrl + C to cancel")
         setTimeout(async function(){
@@ -99,6 +123,7 @@ async function createTables(){
             },5000);
 }
 
+//starts local database with default settings for xampp
 async function localDatabase(){
     try{
         console.log("connecting to localDatabase")
@@ -121,6 +146,7 @@ async function localDatabase(){
       dbta.type="local";
 }
 
+//connect to normal database, variable name should match 'localDatabase'... wont change it tho
 async function startDB(){
 try{
   if(WhichDatabase){
@@ -175,16 +201,10 @@ try{
 }
 
 
-//needa make a function to push the logging data up to the database
+//needa make a function to push the logging data up to the database...
 
-//async function autoClean(){
-//  average=retrievePowerData();
-//  if(average==false){
-//    console.log("no sensor data available");
-//    return;
-//  }
-//}
 
+//retrieve data
 async function retrievePowerData(a=null){// this commented part here \/ is for when is finally working, it will get the data from the last hour, since its not done and running yet, its not gonna work properly
   let averagePower=0;
   let data = await db.query("select power from sensorReadings where recordedAt >= now() - interval 1 hour and recordedAt <= now() order by recordedAt desc limit 100"); 
@@ -207,11 +227,14 @@ async function retrievePowerData(a=null){// this commented part here \/ is for w
   }    
 }
 
+
+//update data
 async function updateSettingsData(){
   await db.query(`
     insert into 
   `)
 }
+
 async function updateSensorsData(){
   await db.query(`
     INSERT INTO sensorReadings (
@@ -224,11 +247,38 @@ async function updateSensorsData(){
 `)
 }
 
+
+//clean command
 async function cleanStart(){
   esp.command="clean";
   console.log("starting to clean");
 }
 
+//autoclean function, checks if its enabled, and if so, manages autoclean
+async function checkAutoclean(){
+  if(!esp.connected){
+    console.log("auto clean unavailable, esp disconnected");
+    return;
+  }
+  let a = await retrievePowerData();
+  a=a[0].power;
+  esp.dustLevel = (100-mapa(a,0,13,0,100)).toFixed(2);
+  if(a===false){
+    console.log("no sensor data available for autoclean");
+    return;
+  }
+  if(esp.dustLevel>settings.autoCleanTrigger){
+    if(settings.autoClean){
+      cleanStart();
+      console.log("autoclean Triggered");
+    }else {
+      console.log("pannel is dirty, autoClean is off")
+    }  
+  }
+}
+
+
+//express settings
 app.use(cors({
   origin: "http://localhost:"+PORT,
 }));
@@ -236,14 +286,16 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname,'public')));
 app.get('/', (req, res) => {res.sendFile(path.join(__dirname, 'public', 'publicIndex.html'));});
 
-//to start or stop cleaning
+
+//routes
+//triggers esp clean routine
 app.post('/clean/start',(req,res)=>{
     cleanStart();
     res.json({ command:`sending command: ${esp.command}`});
     //wait for heartbeat so esp sees the command
 })
 
-
+//retrieves the power data from database
 app.get('/powerData', async (req,res)=>{
   let data = await retrievePowerData("a");
   if(!data){
@@ -255,6 +307,7 @@ app.get('/powerData', async (req,res)=>{
   }
 })
 
+//SHOULD update settings database so user preferences are saved...
 app.post('/settings/update/autoClean',async (req,res)=>{
   Object.assign(settings,req.body);
   //update database settings
@@ -262,6 +315,9 @@ app.post('/settings/update/autoClean',async (req,res)=>{
   res.json({msg:"settings updated succesfuly"});
 })
 
+//most important function, it runs every few seconds, requested by the esp, keeps the esp alive('connected'), 
+//updates the 'esp' variable with new data
+//updates the frontEnd too
 app.post('/heartbeat',(req,res)=>{
     esp.connected = true;
     esp.lastSeen = Date.now();
@@ -289,25 +345,18 @@ app.post('/heartbeat',(req,res)=>{
     updateSensorsData();
 })
 
+//retrieves and sends back to frontend data it needs
 app.get('/data', (req, res) => {
     res.json({esp,dbta});
 });
 
+//retrieves logs from database, only dummy data there as of now
 app.get('/logs', async (req, res) => {
     let logData=await db.query("select * from maintenanceLogs");
     res.json(logData);
 });
 
-function average(){
-  let x;
-  for(i=0;i=powerAverage.length;i++){
-    x+i;
-  }
-  x=(x/powerAverage.length);
-  console.log(x);
-  return x;
-}
-
+//interval to check if its still cleaning, so its not considered as disconnected or smth 
 setInterval(() => {
     if(esp.status=="nowCleaning"){
       esp.connected = true;
@@ -318,35 +367,19 @@ setInterval(() => {
     }
 }, 1000);
 
-//autoclean
-async function checkAutoclean(){
-  if(!esp.connected){
-    console.log("auto clean unavailable, esp disconnected");
-    return;
-  }
-  let a = await retrievePowerData();
-  a=a[0].power;
-  esp.dustLevel = (100-mapa(a,0,13,0,100)).toFixed(2);
-  if(a===false){
-    console.log("no sensor data available for autoclean");
-    return;
-  }
-  if(esp.dustLevel>settings.autoCleanTrigger){
-    if(settings.autoClean){
-      cleanStart();
-      console.log("autoclean Triggered");
-    }else {
-      console.log("pannel is dirty, autoClean is off")
-    }  
-  }
-}
+
+//autoCleans every x (time defined at... \/ (here))
 setInterval(checkAutoclean,settings.autoCleanTime);
-setInterval(function(){
+
+//debug:
+setInterval(function(){if(debug){
   console.log(esp);
   console.log(dbta);
   console.log(settings);
-},5000)
+}},5000)
 
+
+//starts whole server, anything done after this is not executed (app.listen())
 startDB().then(() => {
   checkAutoclean();
     app.listen(PORT, () => {
